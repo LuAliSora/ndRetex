@@ -22,10 +22,6 @@ from modules.utils import (download_weights, seed_everything, show_config,
 def get_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("oriImg", type=str)
-
-    parser.add_argument("textureImg", type=str)
-
     parser.add_argument(
         "--if_train",
         type=bool,
@@ -108,7 +104,6 @@ def train_main(backbone, pretrained, batch_size, epochSum, device):
 
     lr_decay_type       = 'cos'
 
-    
 
     model=get_model(backbone, pretrained, device)
     model.train()
