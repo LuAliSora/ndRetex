@@ -68,7 +68,7 @@ def get_model(backbone, pretrained, init_epoch, device):
         return model
     
     model_dir=Path("weights")
-    model_path=model_dir/f"unet_{backbone}_epoch{init_epoch}"
+    model_path=model_dir/f"unet_{backbone}_epoch{init_epoch}.pth"
 
     print(f'Load weights {model_path}.')
 
