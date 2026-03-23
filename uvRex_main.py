@@ -1,7 +1,7 @@
 import argparse
 
 import datetime
-import os
+# import os
 from functools import partial
 
 import numpy as np
@@ -10,7 +10,6 @@ import torch.backends.cudnn as cudnn
 import torch.distributed as dist
 import torch.optim as optim
 from torch.utils.data import DataLoader
-
 from torch.amp import GradScaler
 
 from pathlib import Path
@@ -20,14 +19,30 @@ from nets.unet_training import get_lr_scheduler, set_optimizer_lr, weights_init
 
 from modules.utils import (download_weights, seed_everything, show_config,
                          worker_init_fn)
+from modules.dataPr import ImgSet
+from modules.train import uvRex_train_one_epoch
 
 def get_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "--if_train",
+        "init_epoch",
+        type=int
+    )
+    parser.add_argument(
+        "epoch_sum",
+        type=int
+    )
+
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=3407,
+    )
+    parser.add_argument(
+        "--if_imgTrans",
         type=bool,
-        default=False,
+        default=True,
     )
     parser.add_argument(
         "--backbone",
@@ -41,18 +56,21 @@ def get_args() -> argparse.Namespace:
         default=False,
     )
     parser.add_argument(
+        "--Freeze_Train",
+        type=bool,
+        default=True,
+    )
+    parser.add_argument(
+        "--if_train",
+        type=bool,
+        default=False,
+    )
+    parser.add_argument(
         "--batch_size",
         type=int,
         default=1
     )
-    parser.add_argument(
-        "init_epoch",
-        type=int
-    )
-    parser.add_argument(
-        "epoch_sum",
-        type=int
-    )
+
     # print(parser.parse_args())
     return parser.parse_args()
 
@@ -91,9 +109,11 @@ def get_model(backbone, pretrained, init_epoch, device):
     return model
 
 
-def train_main(backbone, pretrained, batch_size, init_epoch, epochSum, device):  
+def train_main(seed, backbone, pretrained, Freeze_Train, batch_size, init_epoch, epochSum, device):  
     local_rank      = 0
     rank            = 0
+
+    seed_everything(seed)
 
     save_dir            = 'logs'
 
@@ -110,13 +130,37 @@ def train_main(backbone, pretrained, batch_size, init_epoch, epochSum, device):
 
     lr_decay_type       = 'cos'
 
+    data_dir=Path("data")
+    trainData_dir=data_dir/"train"
+    testData_dir=data_dir/"test"
+
+    train_dataset   = ImgSet(trainData_dir)
+    test_dataset     = ImgSet(testData_dir, False)
+
+    train_loader=DataLoader(train_dataset, 
+                            batch_size, 
+                            shuffle=True, 
+                            num_workers=4, 
+                            pin_memory=True, 
+                            worker_init_fn=partial(worker_init_fn, rank=rank, seed=seed),
+                            drop_last=True
+                            )
+    test_loader=DataLoader(train_dataset, 
+                            batch_size, 
+                            num_workers=4, 
+                            pin_memory=True, 
+                            worker_init_fn=partial(worker_init_fn, rank=rank, seed=seed),
+                            drop_last=True
+                            )
+    
+    train_len=len(train_dataset)
+    test_len=len(test_dataset)
+    test_per_epochs=train_len // test_len
 
     model=get_model(backbone, pretrained, init_epoch, device)
     model.train()
-
-    time_str        = datetime.datetime.strftime(datetime.datetime.now(),'%Y_%m_%d_%H_%M_%S')
-    log_dir         = os.path.join(save_dir, "loss_" + str(time_str))
-    # loss_history    = LossHistory(log_dir, model, input_shape=input_shape)
+    if Freeze_Train:
+        model.freeze_backbone()
 
     scaler = GradScaler()
 
@@ -124,17 +168,11 @@ def train_main(backbone, pretrained, batch_size, init_epoch, epochSum, device):
 
     lr_scheduler_func = get_lr_scheduler(lr_decay_type, Init_lr_fit, Min_lr_fit, epochSum)
 
-
-
-    show_config(
-        num_classes = num_classes, backbone = backbone, model_path = model_path, input_shape = input_shape, \
-        Init_Epoch = Init_Epoch, Freeze_Epoch = Freeze_Epoch, UnFreeze_Epoch = UnFreeze_Epoch, Freeze_batch_size = Freeze_batch_size, Unfreeze_batch_size = Unfreeze_batch_size, Freeze_Train = Freeze_Train, \
-        Init_lr = Init_lr, Min_lr = Min_lr, optimizer_type = optimizer_type, momentum = momentum, lr_decay_type = lr_decay_type, \
-        save_period = save_period, save_dir = save_dir, num_workers = num_workers, num_train = num_train, num_val = num_val
-    )
-
-
-    
+    for epoch in range(init_epoch, epochSum):
+        if (epoch+1) % test_per_epochs==0:
+            uvRex_train_one_epoch(model, optimizer, scaler, device, train_loader, test_loader)
+        else:
+            uvRex_train_one_epoch(model, optimizer, scaler, device, train_loader)
 
 
 if __name__ == "__main__":
@@ -145,8 +183,10 @@ if __name__ == "__main__":
     
     device= torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     if args.if_train:
-        train_main(args.backbone, 
+        train_main(args.seed, 
+                   args.backbone, 
                    args.if_pretrained, 
+                   args.Freeze_Train, 
                    args.batch_size, 
                    args.init_epoch, 
                    args.epoch_sum, 

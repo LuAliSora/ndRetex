@@ -43,7 +43,7 @@ def get_lr(optimizer):
 #---------------------------------------------------#
 #   设置种子
 #---------------------------------------------------#
-def seed_everything(seed=777):
+def seed_everything(seed):
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
