@@ -13,6 +13,8 @@ from torch.utils.data import DataLoader
 
 from torch.amp import GradScaler
 
+from pathlib import Path
+
 from nets.unet import Unet
 from nets.unet_training import get_lr_scheduler, set_optimizer_lr, weights_init
 
@@ -36,7 +38,7 @@ def get_args() -> argparse.Namespace:
     parser.add_argument(
         "--if_pretrained",
         type=bool,
-        default=True,
+        default=False,
     )
     parser.add_argument(
         "--batch_size",
@@ -44,30 +46,34 @@ def get_args() -> argparse.Namespace:
         default=1
     )
     parser.add_argument(
-        "--epoch_sum",
-        type=int,
-        default=1
+        "init_epoch",
+        type=int
+    )
+    parser.add_argument(
+        "epoch_sum",
+        type=int
     )
     # print(parser.parse_args())
     return parser.parse_args()
 
 
-def get_model(backbone, pretrained, device):
+def get_model(backbone, pretrained, init_epoch, device):
     model = Unet(2, backbone, pretrained)
-    
-    if not pretrained:
+
+    if pretrained:
+        return model
+
+    if init_epoch==0:
         weights_init(model)
         return model
     
-    if backbone=='vgg':
-        model_path  = "model_data/unet_vgg_voc.pth"
-    elif backbone=='resnet50r':
-        model_path  = "model_data/unet_resnet_voc.pth"
+    model_dir=Path("weights")
+    model_path=model_dir/f"unet_{backbone}_epoch{init_epoch}"
 
     print(f'Load weights {model_path}.')
 
     model_dict      = model.state_dict()
-    pretrained_dict = torch.load(model_path, map_location = device)
+    pretrained_dict = torch.load(str(model_path), map_location = device)
     load_key, no_load_key, temp_dict = [], [], {}
     for k, v in pretrained_dict.items():
         if k in model_dict.keys() and np.shape(model_dict[k]) == np.shape(v):
@@ -85,7 +91,7 @@ def get_model(backbone, pretrained, device):
     return model
 
 
-def train_main(backbone, pretrained, batch_size, epochSum, device):  
+def train_main(backbone, pretrained, batch_size, init_epoch, epochSum, device):  
     local_rank      = 0
     rank            = 0
 
@@ -105,7 +111,7 @@ def train_main(backbone, pretrained, batch_size, epochSum, device):
     lr_decay_type       = 'cos'
 
 
-    model=get_model(backbone, pretrained, device)
+    model=get_model(backbone, pretrained, init_epoch, device)
     model.train()
 
     time_str        = datetime.datetime.strftime(datetime.datetime.now(),'%Y_%m_%d_%H_%M_%S')
@@ -133,6 +139,16 @@ def train_main(backbone, pretrained, batch_size, epochSum, device):
 
 if __name__ == "__main__":
     args=get_args()
+
+    if (args.epoch_sum)<=(args.init_epoch):
+        raise Exception("epoch_sum should greater than init_epoch")
+    
     device= torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     if args.if_train:
-        train_main(args.backbone, args.if_pretrained, args.batch_size, args.epoch_sum, device)
+        train_main(args.backbone, 
+                   args.if_pretrained, 
+                   args.batch_size, 
+                   args.init_epoch, 
+                   args.epoch_sum, 
+                   device
+                   )
