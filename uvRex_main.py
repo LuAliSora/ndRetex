@@ -26,12 +26,16 @@ def get_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "init_epoch",
+        "Init_Epoch",
         type=int
     )
     parser.add_argument(
         "epoch_sum",
         type=int
+    )
+    parser.add_argument(
+        "batch_size",
+        type=int,
     )
 
     parser.add_argument(
@@ -40,9 +44,10 @@ def get_args() -> argparse.Namespace:
         default=3407,
     )
     parser.add_argument(
-        "--if_imgTrans",
+        "--DA",
         type=bool,
         default=True,
+        help="Data Augmentation"
     )
     parser.add_argument(
         "--backbone",
@@ -51,42 +56,37 @@ def get_args() -> argparse.Namespace:
         default='vgg'
     )
     parser.add_argument(
-        "--if_pretrained",
+        "--pretrained",
         type=bool,
         default=False,
+    )
+    parser.add_argument(
+        "--mode",
+        type=str,
+        choices=['train', 'eval'],
+        default='train',
     )
     parser.add_argument(
         "--Freeze_Train",
         type=bool,
         default=True,
     )
-    parser.add_argument(
-        "--if_train",
-        type=bool,
-        default=False,
-    )
-    parser.add_argument(
-        "--batch_size",
-        type=int,
-        default=1
-    )
-
     # print(parser.parse_args())
     return parser.parse_args()
 
 
-def get_model(backbone, pretrained, init_epoch, device):
+def get_model(backbone, pretrained, Init_Epoch, device):
     model = Unet(2, backbone, pretrained)
 
     if pretrained:
         return model
 
-    if init_epoch==0:
+    if Init_Epoch==0:
         weights_init(model)
         return model
     
     model_dir=Path("weights")
-    model_path=model_dir/f"unet_{backbone}_epoch{init_epoch}.pth"
+    model_path=model_dir/f"uvRex_{backbone}_epoch{Init_Epoch}.pth"
 
     print(f'Load weights {model_path}.')
 
@@ -109,7 +109,7 @@ def get_model(backbone, pretrained, init_epoch, device):
     return model
 
 
-def train_main(seed, backbone, pretrained, Freeze_Train, batch_size, init_epoch, epochSum, device):  
+def train_main(seed, backbone, pretrained, Freeze_Train, batch_size, Init_Epoch, epochSum, device):  
     local_rank      = 0
     rank            = 0
 
@@ -157,7 +157,7 @@ def train_main(seed, backbone, pretrained, Freeze_Train, batch_size, init_epoch,
     test_len=len(test_dataset)
     test_per_epochs=train_len // test_len
 
-    model=get_model(backbone, pretrained, init_epoch, device)
+    model=get_model(backbone, pretrained, Init_Epoch, device)
     model.train()
     if Freeze_Train:
         model.freeze_backbone()
@@ -168,7 +168,9 @@ def train_main(seed, backbone, pretrained, Freeze_Train, batch_size, init_epoch,
 
     lr_scheduler_func = get_lr_scheduler(lr_decay_type, Init_lr_fit, Min_lr_fit, epochSum)
 
-    for epoch in range(init_epoch, epochSum):
+    for epoch in range(Init_Epoch, epochSum):
+        set_optimizer_lr(optimizer, lr_scheduler_func, epoch)
+        
         if (epoch+1) % test_per_epochs==0:
             uvRex_train_one_epoch(model, optimizer, scaler, device, train_loader, test_loader)
         else:
@@ -178,17 +180,17 @@ def train_main(seed, backbone, pretrained, Freeze_Train, batch_size, init_epoch,
 if __name__ == "__main__":
     args=get_args()
 
-    if (args.epoch_sum)<=(args.init_epoch):
-        raise Exception("epoch_sum should greater than init_epoch")
+    if (args.epoch_sum)<=(args.Init_Epoch):
+        raise Exception("epoch_sum should greater than Init_Epoch")
     
     device= torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    if args.if_train:
+    if args.mode=='train':
         train_main(args.seed, 
                    args.backbone, 
-                   args.if_pretrained, 
+                   args.pretrained, 
                    args.Freeze_Train, 
                    args.batch_size, 
-                   args.init_epoch, 
+                   args.Init_Epoch, 
                    args.epoch_sum, 
                    device
                    )
