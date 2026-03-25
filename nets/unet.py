@@ -22,13 +22,13 @@ class unetUp(nn.Module):
         return outputs
 
 class Unet(nn.Module):
-    def __init__(self, num_classes, backbone = 'vgg', pretrained = False):
+    def __init__(self, num_classes, backbone, pretrained, model_dir:str):
         super(Unet, self).__init__()
         if backbone == 'vgg':
-            self.vgg    = VGG16(pretrained = pretrained)
+            self.vgg    = VGG16(pretrained, model_dir)
             in_filters  = [192, 384, 768, 1024]
         elif backbone == "resnet50":
-            self.resnet = resnet50(pretrained = pretrained)
+            self.resnet = resnet50(pretrained, model_dir)
             in_filters  = [192, 512, 1024, 3072]
         else:
             raise ValueError('Unsupported backbone - `{}`, Use vgg, resnet50.'.format(backbone))

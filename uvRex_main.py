@@ -54,6 +54,11 @@ def get_args() -> argparse.Namespace:
         default=False,
     )
     parser.add_argument(
+        "--model_dir",
+        type=str,
+        default='weights'
+    )
+    parser.add_argument(
         "--Freeze_Train",
         type=bool,
         default=True,
@@ -77,8 +82,8 @@ def get_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def get_model(backbone, pretrained, Init_Epoch, device):
-    model = Unet(2, backbone, pretrained)
+def get_model(backbone, pretrained, model_dir:str, Init_Epoch, device):
+    model = Unet(2, backbone, pretrained, model_dir)
 
     if pretrained:
         return model
@@ -87,8 +92,8 @@ def get_model(backbone, pretrained, Init_Epoch, device):
         weights_init(model)
         return model
     
-    model_dir=Path("weights")
-    model_path=model_dir/f"uvRex_{backbone}_epoch{Init_Epoch}.pth"
+    # model_dir=Path("weights")
+    model_path=Path("weights")/f"uvRex_{backbone}_epoch{Init_Epoch}.pth"
 
     print(f'Load weights {model_path}.')
 
@@ -111,7 +116,7 @@ def get_model(backbone, pretrained, Init_Epoch, device):
     return model
 
 
-def train_main(seed, backbone, pretrained, Freeze_Train, batch_size, Init_Epoch, epoch_sum, device):  
+def train_main(seed, backbone, pretrained, model_dir:str, Freeze_Train, batch_size, Init_Epoch, epoch_sum, device):  
     if Init_Epoch<0 or Init_Epoch>epoch_sum:
         raise Exception("Require valid epoch!")
     
@@ -162,7 +167,7 @@ def train_main(seed, backbone, pretrained, Freeze_Train, batch_size, Init_Epoch,
     test_len=len(test_dataset)
     test_per_epochs=train_len // test_len
 
-    model=get_model(backbone, pretrained, Init_Epoch, device)
+    model=get_model(backbone, pretrained, model_dir, Init_Epoch, device)
     model.train()
     if Freeze_Train:
         model.freeze_backbone()
@@ -190,6 +195,7 @@ if __name__ == "__main__":
         train_main(args.seed, 
                    args.backbone, 
                    args.pretrained, 
+                   args.model_dir,
                    args.Freeze_Train, 
                    args.batch_size, 
                    args.Init_Epoch, 
