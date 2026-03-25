@@ -148,6 +148,7 @@ def train_main(seed, backbone, pretrained, model_dir:str, Freeze_Train, batch_si
     test_dataset     = ImgSet(testData_dir)
     
     dataAug=train_dataset.transfm
+    # dataAug.to(device)
 
     train_loader=DataLoader(train_dataset, 
                             batch_size, 
@@ -155,14 +156,16 @@ def train_main(seed, backbone, pretrained, model_dir:str, Freeze_Train, batch_si
                             num_workers=4, 
                             pin_memory=True, 
                             worker_init_fn=partial(worker_init_fn, rank=rank, seed=seed),
-                            drop_last=True
+                            drop_last=True,
+                            # persistent_workers=True
                             )
     test_loader=DataLoader(test_dataset, 
                             batch_size, 
                             num_workers=4, 
                             pin_memory=True, 
                             worker_init_fn=partial(worker_init_fn, rank=rank, seed=seed),
-                            drop_last=True
+                            drop_last=True,
+                            # persistent_workers=True
                             )
     
     train_len=len(train_dataset)

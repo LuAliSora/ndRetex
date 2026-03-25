@@ -10,8 +10,7 @@ def uvRex_train_one_epoch(model, optimizer, scaler, dataAug, device, train_loade
     for i, data in enumerate(train_loader):
         optimizer.zero_grad()
         with autocast(device.type):
-            x=data.to(device)
-            x_aug=dataAug(x)
+            x_aug=dataAug(data).to(device)
             y=model(x_aug)
             loss=loss_fn(x, y)
             
