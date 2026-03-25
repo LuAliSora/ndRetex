@@ -93,7 +93,7 @@ def get_model(backbone, pretrained, model_dir:str, Init_Epoch, device):
         return model
     
     # model_dir=Path("weights")
-    model_path=Path("weights")/f"uvRex_{backbone}_epoch{Init_Epoch}.pth"
+    model_path=f"{model_dir}/uvRex_{backbone}_epoch{Init_Epoch}.pth"
 
     print(f'Load weights {model_path}.')
 
