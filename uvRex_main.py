@@ -26,18 +26,11 @@ def get_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "Init_Epoch",
-        type=int
+        "--mode",
+        type=str,
+        choices=['train', 'eval'],
+        default='train',
     )
-    parser.add_argument(
-        "epoch_sum",
-        type=int
-    )
-    parser.add_argument(
-        "batch_size",
-        type=int,
-    )
-
     parser.add_argument(
         "--seed",
         type=int,
@@ -61,15 +54,24 @@ def get_args() -> argparse.Namespace:
         default=False,
     )
     parser.add_argument(
-        "--mode",
-        type=str,
-        choices=['train', 'eval'],
-        default='train',
-    )
-    parser.add_argument(
         "--Freeze_Train",
         type=bool,
         default=True,
+    )
+    parser.add_argument(
+        "--Init_Epoch",
+        type=int,
+        default=0
+    )
+    parser.add_argument(
+        "--epoch_sum",
+        type=int,
+        default=0
+    )
+    parser.add_argument(
+        "batch_size",
+        type=int,
+        default=1
     )
     # print(parser.parse_args())
     return parser.parse_args()
@@ -109,7 +111,10 @@ def get_model(backbone, pretrained, Init_Epoch, device):
     return model
 
 
-def train_main(seed, backbone, pretrained, Freeze_Train, batch_size, Init_Epoch, epochSum, device):  
+def train_main(seed, backbone, pretrained, Freeze_Train, batch_size, Init_Epoch, epoch_sum, device):  
+    if Init_Epoch<0 or Init_Epoch>epoch_sum:
+        raise Exception("Require valid epoch!")
+    
     local_rank      = 0
     rank            = 0
 
@@ -166,9 +171,9 @@ def train_main(seed, backbone, pretrained, Freeze_Train, batch_size, Init_Epoch,
 
     optimizer=optim.Adam(model.parameters(), Init_lr_fit, betas = (momentum, 0.999), weight_decay = weight_decay)
 
-    lr_scheduler_func = get_lr_scheduler(lr_decay_type, Init_lr_fit, Min_lr_fit, epochSum)
+    lr_scheduler_func = get_lr_scheduler(lr_decay_type, Init_lr_fit, Min_lr_fit, epoch_sum)
 
-    for epoch in range(Init_Epoch, epochSum):
+    for epoch in range(Init_Epoch, epoch_sum):
         set_optimizer_lr(optimizer, lr_scheduler_func, epoch)
         
         if (epoch+1) % test_per_epochs==0:
@@ -180,9 +185,6 @@ def train_main(seed, backbone, pretrained, Freeze_Train, batch_size, Init_Epoch,
 if __name__ == "__main__":
     args=get_args()
 
-    if (args.epoch_sum)<=(args.Init_Epoch):
-        raise Exception("epoch_sum should greater than Init_Epoch")
-    
     device= torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     if args.mode=='train':
         train_main(args.seed, 
