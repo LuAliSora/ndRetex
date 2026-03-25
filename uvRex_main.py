@@ -140,7 +140,7 @@ def train_main(seed, backbone, pretrained, model_dir:str, Freeze_Train, batch_si
 
     lr_decay_type       = 'cos'
 
-    data_dir=Path("data")
+    data_dir=Path("input")
     trainData_dir=data_dir/"train"
     testData_dir=data_dir/"test"
 
