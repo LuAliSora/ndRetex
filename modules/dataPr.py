@@ -6,22 +6,41 @@ from torch.utils import data
 import numpy as np
 
 from pathlib import Path
-from PIL import Image
+# from PIL import Image
+import cv2
 
 import kornia.augmentation as K
 
+
+@torch.no_grad()
+def get_masked(ori_path:str, mask_path:str):
+    ori_np = cv2.imread(ori_path)
+    ori_np = cv2.cvtColor(ori_np, cv2.COLOR_BGR2RGB)
+    mask_np = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
+
+    ori_float = ori_np.astype(np.float32)/ 255.0
+    # mask_np = mask_img.astype(np.float32)
+    
+    binary_mask = (mask_np > 127)
+    ori_float[~binary_mask] = 0
+
+    res_tensor = torch.from_numpy(ori_float).permute(2, 0, 1).contiguous()
+    return res_tensor
+
+
+
 class ImgSet(data.Dataset):
 
-    def __init__(self, img_dir, if_imgTrans=True):
+    def __init__(self, img_dir, DA=True):
         normal_dir=img_dir/"normal"
         mask_dir=img_dir/"mask"
         
-        self.normal_list=[img for img in normal_dir.glob('*.jpg')]
-        self.mask_list=[img for img in mask_dir.glob('*.jpg')]
+        self.normal_list = sorted(normal_dir.glob('*.jpg'))
+        self.mask_list = sorted(mask_dir.glob('*.jpg'))
         # print(self.imgList)
 
         trans_size=[512, 512]
-        if if_imgTrans:
+        if DA:
             self.transfm = K.AugmentationSequential(
                 K.RandomHorizontalFlip(p=0.5),
                 K.RandomVerticalFlip(p=0.3),
@@ -39,19 +58,12 @@ class ImgSet(data.Dataset):
         normal_path=self.normal_list[index]
         mask_path=self.mask_list[index]
 
-        normal_img = Image.open(str(normal_path)).convert('RGB')
-        mask_img = Image.open(str(mask_path)).convert('L')
+        normal_tensor=get_masked(normal_path, mask_path)
 
-        normal_np = np.array(normal_img).astype(np.float32)  # (H, W, C)
-        mask_np = np.array(mask_img).astype(np.float32)      # (H, W)
-        binary_mask = (mask_np > 127)
-        normal_np[~binary_mask] = [0, 0, 0]# Masked normal
-        normal_tensor = torch.from_numpy(normal_np).permute(2, 0, 1) / 255.0
-
-        if self.transfm!=None:
-            normal_tensor = normal_tensor.unsqueeze(0)  # (1, C, H, W)
-            normal_tensor = self.transfm(normal_tensor)
-            normal_tensor = normal_tensor.squeeze(0)  # (C, H, W)
+        # if self.transfm!=None:
+        #     normal_tensor = normal_tensor.unsqueeze(0)  # (1, C, H, W)
+        #     normal_tensor = self.transfm(normal_tensor)
+        #     normal_tensor = normal_tensor.squeeze(0)  # (C, H, W)
 
         return normal_tensor
     
