@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 from torch.hub import load_state_dict_from_url
 
@@ -68,7 +69,8 @@ def VGG16(pretrained, model_dir:str, in_channels = 3, **kwargs):
     model = VGG(make_layers(cfgs["D"], batch_norm = False, in_channels = in_channels), **kwargs)
     if pretrained:
         model_path=f"{model_dir}/vgg16-397923af.pth"
-        model.load_state_dict(model_dir, strict=False)
+        state_dict=torch.load(model_path, weights_only=True)
+        model.load_state_dict(state_dict, strict=False)
     
     del model.avgpool
     del model.classifier

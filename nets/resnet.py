@@ -1,5 +1,5 @@
 import math
-
+import torch
 import torch.nn as nn
 import torch.utils.model_zoo as model_zoo
 
@@ -179,7 +179,8 @@ def resnet50(pretrained, model_dir:str, **kwargs):
     model = ResNet(Bottleneck, [3, 4, 6, 3], **kwargs)
     if pretrained:
         model_path=f"{model_dir}/resnet50-19c8e357.pth"
-        model.load_state_dict(model_dir, strict=False)
+        state_dict=torch.load(model_path, weights_only=True)
+        model.load_state_dict(state_dict, strict=False)
     
     del model.avgpool
     del model.fc

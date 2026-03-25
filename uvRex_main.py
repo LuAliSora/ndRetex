@@ -74,7 +74,7 @@ def get_args() -> argparse.Namespace:
         default=0
     )
     parser.add_argument(
-        "batch_size",
+        "--batch_size",
         type=int,
         default=1
     )
