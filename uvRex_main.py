@@ -37,7 +37,7 @@ def get_args() -> argparse.Namespace:
         default=3407,
     )
     parser.add_argument(
-        "--DA",
+        "--if_dataAug",
         type=bool,
         default=True,
         help="Data Augmentation"
@@ -145,7 +145,9 @@ def train_main(seed, backbone, pretrained, model_dir:str, Freeze_Train, batch_si
     testData_dir=data_dir/"test"
 
     train_dataset   = ImgSet(trainData_dir)
-    test_dataset     = ImgSet(testData_dir, False)
+    test_dataset     = ImgSet(testData_dir)
+    
+    dataAug=train_dataset.transfm
 
     train_loader=DataLoader(train_dataset, 
                             batch_size, 
@@ -155,7 +157,7 @@ def train_main(seed, backbone, pretrained, model_dir:str, Freeze_Train, batch_si
                             worker_init_fn=partial(worker_init_fn, rank=rank, seed=seed),
                             drop_last=True
                             )
-    test_loader=DataLoader(train_dataset, 
+    test_loader=DataLoader(test_dataset, 
                             batch_size, 
                             num_workers=4, 
                             pin_memory=True, 
@@ -168,7 +170,7 @@ def train_main(seed, backbone, pretrained, model_dir:str, Freeze_Train, batch_si
     test_per_epochs=train_len // test_len
 
     model=get_model(backbone, pretrained, model_dir, Init_Epoch, device)
-    model.train()
+
     if Freeze_Train:
         model.freeze_backbone()
 
@@ -182,9 +184,10 @@ def train_main(seed, backbone, pretrained, model_dir:str, Freeze_Train, batch_si
         set_optimizer_lr(optimizer, lr_scheduler_func, epoch)
         
         if (epoch+1) % test_per_epochs==0:
-            uvRex_train_one_epoch(model, optimizer, scaler, device, train_loader, test_loader)
+            uvRex_train_one_epoch(model, optimizer, scaler, dataAug, device, train_loader, test_loader)
+            torch.save(model.state_dict(), f"weights/uvRex_{backbone}_epoch{epoch}.pth")
         else:
-            uvRex_train_one_epoch(model, optimizer, scaler, device, train_loader)
+            uvRex_train_one_epoch(model, optimizer, scaler, dataAug, device, train_loader)
 
 
 if __name__ == "__main__":

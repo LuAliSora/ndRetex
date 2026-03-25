@@ -41,7 +41,7 @@ def get_masked(ori_path:str, mask_path:str):
 
 class ImgSet(data.Dataset):
 
-    def __init__(self, img_dir:Path, DA=True):
+    def __init__(self, img_dir:Path, if_dataAug=True):
         normal_dir=img_dir/"normal"
         mask_dir=img_dir/"mask"
         
@@ -50,7 +50,7 @@ class ImgSet(data.Dataset):
         # print(self.imgList)
 
         trans_size=[512, 512]
-        if DA:
+        if if_dataAug:
             self.transfm = K.AugmentationSequential(
                 K.Resize(size=trans_size),
                 K.RandomHorizontalFlip(p=0.5),
