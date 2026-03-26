@@ -19,7 +19,7 @@ from nets.unet_training import get_lr_scheduler, set_optimizer_lr, weights_init
 
 from modules.utils import (download_weights, seed_everything, show_config,
                          worker_init_fn)
-from modules.dataPr import ImgSet
+from modules.dataPr import Masked_ImgSet
 from modules.train import uvRex_train_one_epoch
 
 def get_args() -> argparse.Namespace:
@@ -144,8 +144,8 @@ def train_main(seed, backbone, pretrained, model_dir:str, Freeze_Train, batch_si
     trainData_dir=data_dir/"train"
     testData_dir=data_dir/"test"
 
-    train_dataset   = ImgSet(trainData_dir)
-    test_dataset     = ImgSet(testData_dir)
+    train_dataset   = Masked_ImgSet(trainData_dir)
+    test_dataset     = Masked_ImgSet(testData_dir)
     
     dataAug=train_dataset.transfm
     # dataAug.to(device)

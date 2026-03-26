@@ -39,7 +39,7 @@ def get_masked(ori_path:str, mask_path:str):
 
 
 
-class ImgSet(data.Dataset):
+class Masked_ImgSet(data.Dataset):
 
     def __init__(self, img_dir:Path, if_dataAug=True):
         normal_dir=img_dir/"normal"
