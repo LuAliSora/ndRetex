@@ -41,12 +41,11 @@ def get_masked(ori_path:str, mask_path:str):
 
 class Masked_ImgSet(data.Dataset):
 
-    def __init__(self, img_dir:Path, if_dataAug=True):
-        normal_dir=img_dir/"normal"
-        mask_dir=img_dir/"mask"
+    def __init__(self, img_dir:str, mask_dir:str, if_dataAug=True):
+        self.img_dir=Path(img_dir)
+        self.mask_dir=Path(mask_dir)
         
-        self.normal_list = sorted(normal_dir.glob('*.jpg'))
-        self.mask_list = sorted(mask_dir.glob('*.jpg'))
+        self.img_list = sorted([str(img.name) for img in (self.img_dir).glob('*.jpg')])
         # print(self.imgList)
 
         trans_size=[512, 512]
@@ -69,13 +68,12 @@ class Masked_ImgSet(data.Dataset):
 
     @torch.no_grad()
     def __getitem__(self, index):
-        normal_path=self.normal_list[index]
-        mask_path=self.mask_list[index]
+        img_name=self.img_list[index]
 
-        if normal_path.name!=mask_path.name:
-            raise Exception("Images mismatch!")
+        img_path=self.img_dir/img_name
+        mask_path=self.mask_dir/img_name
 
-        normal_tensor=get_masked(normal_path, mask_path)
+        img_tensor=get_masked(str(img_path), str(mask_path))
 
         # if self.transfm!=None:
         #     normal_tensor = normal_tensor.unsqueeze(0)  # (1, C, H, W)
@@ -83,8 +81,8 @@ class Masked_ImgSet(data.Dataset):
         #     normal_tensor = normal_tensor.squeeze(0)  # (C, H, W)
 
         # tensor2img(normal_tensor, f"output/{normal_path.name}")
-        return normal_tensor
+        return img_tensor
     
     def __len__(self):
-        return len(self.normal_list)
+        return len(self.img_list)
     

@@ -140,12 +140,14 @@ def train_main(seed, backbone, pretrained, model_dir:str, Freeze_Train, batch_si
 
     lr_decay_type       = 'cos'
 
-    data_dir=Path("input")
-    trainData_dir=data_dir/"train"
-    testData_dir=data_dir/"test"
+    input_dir=Path("input")
+    train_dir=input_dir/"train"
+    test_dir=input_dir/"test"
+    img_folder="normal"
+    mask_folder="mask"
 
-    train_dataset   = Masked_ImgSet(trainData_dir)
-    test_dataset     = Masked_ImgSet(testData_dir)
+    train_dataset   = Masked_ImgSet(str(train_dir/img_folder), str(train_dir/mask_folder))
+    test_dataset     = Masked_ImgSet(str(test_dir/img_folder), str(test_dir/mask_folder))
     
     dataAug=train_dataset.transfm
     # dataAug.to(device)
