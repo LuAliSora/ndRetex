@@ -13,6 +13,7 @@ from torch.utils.data import DataLoader
 from torch.amp import GradScaler
 
 from pathlib import Path
+from tqdm import tqdm
 
 from nets.unet import Unet
 from nets.unet_training import get_lr_scheduler, set_optimizer_lr, weights_init
@@ -185,7 +186,10 @@ def train_main(seed, backbone, pretrained, model_dir:str, Freeze_Train, batch_si
 
     lr_scheduler_func = get_lr_scheduler(lr_decay_type, Init_lr_fit, Min_lr_fit, epoch_sum)
 
-    for epoch in range(Init_Epoch, epoch_sum):
+    epoch_range = range(Init_Epoch, epoch_sum)
+    epoch_pbar = tqdm(epoch_range, desc='Training_Progress', unit='epoch')
+
+    for epoch in epoch_pbar:
         set_optimizer_lr(optimizer, lr_scheduler_func, epoch)
         
         if (epoch+1) % test_per_epochs==0:
