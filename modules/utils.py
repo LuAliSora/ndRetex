@@ -87,3 +87,55 @@ def download_weights(backbone, model_dir="./model_data"):
     if not os.path.exists(model_dir):
         os.makedirs(model_dir)
     load_state_dict_from_url(url, model_dir)
+
+#---------------------------------------------------#
+def compute_d_x(ori):
+    """计算x方向梯度，支持batch维度"""
+    temp = ori[:, :, 1:, :] - ori[:, :, :-1, :]
+    d_x = torch.zeros_like(ori)
+    d_x[:, :, 1:, :] = temp
+    return d_x
+
+def compute_d_y(ori):
+    """计算y方向梯度，支持batch维度"""
+    temp = ori[:, :, :, 1:] - ori[:, :, :, :-1]
+    d_y = torch.zeros_like(ori)
+    d_y[:, :, :, 1:] = temp
+    return d_y
+
+def uvRex_loss(uv, normal):
+    """
+    计算UV和Normal的损失函数
+    
+    Args:
+        uv: [B, 2, H, W] - UV坐标
+        normal: [B, 3, H, W] - 法线贴图 (x,y,z)
+    
+    Returns:
+        loss: 标量损失值
+    """
+    # 计算UV的梯度
+    du_x = compute_d_x(uv[:, 0:1])  # [B, 1, H, W]
+    dv_x = compute_d_x(uv[:, 1:2])  # [B, 1, H, W]
+    du_y = compute_d_y(uv[:, 0:1])  # [B, 1, H, W]
+    dv_y = compute_d_y(uv[:, 1:2])  # [B, 1, H, W]
+    
+    # 获取法线分量
+    nx = normal[:, 0:1]  # [B, 1, H, W]
+    ny = normal[:, 1:2]  # [B, 1, H, W]
+    nz = normal[:, 2:3]  # [B, 1, H, W]
+    
+    epsilon = 1e-8
+    
+    # 几何损失
+    loss_geo = (du_x**2 + dv_x**2 - 1 - nx**2 / (nz**2 + epsilon))**2 + \
+               (du_y**2 + dv_y**2 - 1 - ny**2 / (nz**2 + epsilon))**2 + \
+               (du_x * du_y + dv_x * dv_y - 1 - nx * ny / (nz**2 + epsilon))**2
+    
+    # Z方向约束
+    loss_z = torch.clamp(du_x * dv_y - du_y * dv_x, min=0)
+    
+    # 计算平均损失（而不是总和）
+    loss_fin = loss_geo.mean() + 0.01 * loss_z.mean()
+    
+    return loss_fin

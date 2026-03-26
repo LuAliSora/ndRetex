@@ -196,10 +196,10 @@ def train_main(seed, backbone, pretrained, model_dir:str, Freeze_Train, batch_si
         set_optimizer_lr(optimizer, lr_scheduler_func, epoch)
         
         if (epoch+1) % test_per_epochs==0:
-            uvRex_train_one_epoch(model, optimizer, scaler, dataAug, device, train_loader, test_loader)
+            train_loss, test_loss = uvRex_train_one_epoch(model, optimizer, scaler, dataAug, device, train_loader, test_loader)
             torch.save(model.state_dict(), f"weights/uvRex_{backbone}_epoch{epoch}.pth")
         else:
-            uvRex_train_one_epoch(model, optimizer, scaler, dataAug, device, train_loader)
+            train_loss, _ = uvRex_train_one_epoch(model, optimizer, scaler, dataAug, device, train_loader)
 
 
 if __name__ == "__main__":
