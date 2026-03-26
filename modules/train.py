@@ -5,7 +5,6 @@ from modules.dataPr import tensor2img
 
 def uvRex_train_one_epoch(model, optimizer, scaler, dataAug, device, train_loader, test_loader=None):
 
-
     for i, data in enumerate(train_loader):
         optimizer.zero_grad()
         with autocast(device.type):
@@ -17,5 +16,12 @@ def uvRex_train_one_epoch(model, optimizer, scaler, dataAug, device, train_loade
         # scaler.scale(loss).backward()
         # scaler.step(optimizer)
         # scaler.update()
+
+    if test_loader!=None:
+        model.eval()
+        with torch.no_grad():  # 禁用梯度计算，节省内存和计算
+            for i, data in enumerate(test_loader):
+                with autocast(device.type):
+
     model.cpu()
     return model
