@@ -189,6 +189,9 @@ def train_main(seed, backbone, pretrained, model_dir:str, Freeze_Train, batch_si
     epoch_range = range(Init_Epoch, epoch_sum)
     epoch_pbar = tqdm(epoch_range, desc='Training_Progress', unit='epoch')
 
+    model.train()
+    model.to(device)
+
     for epoch in epoch_pbar:
         set_optimizer_lr(optimizer, lr_scheduler_func, epoch)
         
