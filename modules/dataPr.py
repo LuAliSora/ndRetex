@@ -28,8 +28,14 @@ def img2np_rgb(img_path:str):
     return img_rgb
 
 
-def img_masked(ori_np, mask_np):
+def get_binary_mask(mask_path:str):
+    mask_np = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
     binary_mask = (mask_np > 127)
+    return  binary_mask
+
+
+def img_masked(ori_np, binary_mask):
+    
     res=ori_np.copy()
     res[~binary_mask] = 0
 
@@ -69,10 +75,11 @@ class Masked_ImgSet(data.Dataset):
         img_path=self.img_dir/img_name
         mask_path=self.mask_dir/img_name
 
-        img = img2np_rgb(str(img_path)).astype(np.float32)/ 255.0
-        mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
+        img_np = img2np_rgb(str(img_path)).astype(np.float32)/ 255.0
 
-        res_np=img_masked(img, mask)
+        binary_mask = get_binary_mask(str(mask_path))
+
+        res_np=img_masked(img_np, binary_mask)
         res_tensor = torch.from_numpy(res_np).permute(2, 0, 1).contiguous()
 
         # transfm=get_dataAug()
