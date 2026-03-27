@@ -36,7 +36,7 @@ def img_masked(ori_np, mask_np):
     return res
 
 
-def get_dataAug(trans_size_2D):
+def get_dataAug(trans_size_2D=[512, 512]):
     transfm = K.AugmentationSequential(
         K.Resize(size=trans_size_2D),
         K.RandomHorizontalFlip(p=0.5),
@@ -75,12 +75,12 @@ class Masked_ImgSet(data.Dataset):
         res_np=img_masked(img, mask)
         res_tensor = torch.from_numpy(res_np).permute(2, 0, 1).contiguous()
 
-        # if self.transfm!=None:
-        #     img_tensor = img_tensor.unsqueeze(0)  # (1, C, H, W)
-        #     img_tensor = self.transfm(img_tensor)
-        #     img_tensor = img_tensor.squeeze(0)  # (C, H, W)
+        # transfm=get_dataAug()
+        # res_tensor = res_tensor.unsqueeze(0)  # (1, C, H, W)
+        # res_tensor = transfm(res_tensor)
+        # res_tensor = res_tensor.squeeze(0)  # (C, H, W)
 
-        # tensor2img(img_tensor, f"output/{normal_path.name}")
+        # tensor2img(res_tensor, f"output/{img_path.name}")
         return res_tensor
     
     def __len__(self):
