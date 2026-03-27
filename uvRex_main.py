@@ -14,13 +14,14 @@ from torch.amp import GradScaler
 
 from pathlib import Path
 from tqdm import tqdm
+import csv
 
 from nets.unet import Unet
 from nets.unet_training import get_lr_scheduler, set_optimizer_lr, weights_init
 
 from modules.utils import (download_weights, seed_everything, show_config,
                          worker_init_fn)
-from modules.dataPr import Masked_ImgSet, get_dataAug
+from modules.dataPr import Masked_ImgSet, get_dataAug, img_masked
 from modules.train import uvRex_train_one_epoch
 
 def get_args() -> argparse.Namespace:
@@ -29,7 +30,7 @@ def get_args() -> argparse.Namespace:
     parser.add_argument(
         "--mode",
         type=str,
-        choices=['train', 'eval'],
+        choices=['train', 'predict'],
         default='train',
     )
     parser.add_argument(
@@ -175,26 +176,49 @@ def train_main(seed, backbone, pretrained, model_dir:str, Freeze_Train, batch_si
     if Freeze_Train:
         model.freeze_backbone()
 
+    model.train()
+    model.to(device)
+
     scaler = GradScaler()
 
     optimizer=optim.Adam(model.parameters(), Init_lr_fit, betas = (momentum, 0.999), weight_decay = weight_decay)
 
     lr_scheduler_func = get_lr_scheduler(lr_decay_type, Init_lr_fit, Min_lr_fit, epoch_sum)
 
+    loss_log_file=f"{model_dir}/uvRex_{backbone}_loss.csv"
+    loss_log_path=Path(loss_log_file)
+    if loss_log_path.is_file()==False:
+        with open(loss_log_file, 'w', newline='') as f:
+            loss_writer = csv.writer(f)
+            loss_writer.writerow(['epoch', 'train_loss', 'test_loss'])
+
     epoch_range = range(Init_Epoch, epoch_sum)
     epoch_pbar = tqdm(epoch_range, desc='Training_Progress', unit='epoch')
-
-    model.train()
-    model.to(device)
 
     for epoch in epoch_pbar:
         set_optimizer_lr(optimizer, lr_scheduler_func, epoch)
         
         if (epoch+1) % test_per_epochs==0:
             train_loss, test_loss = uvRex_train_one_epoch(model, optimizer, scaler, dataAug, device, train_loader, test_loader)
+
+            with open(loss_log_file, 'a', newline='') as f:
+                writer = csv.writer(f)
+                writer.writerow([epoch, f"{train_loss:.6f}", f"{test_loss:.6f}"])
+
             torch.save(model.state_dict(), f"weights/uvRex_{backbone}_epoch{epoch}.pth")
+
         else:
             train_loss, _ = uvRex_train_one_epoch(model, optimizer, scaler, dataAug, device, train_loader)
+            
+            with open(loss_log_file, 'a', newline='') as f:
+                writer = csv.writer(f)
+                writer.writerow([epoch, f"{train_loss:.6f}", ""])
+
+
+def predict_main(ori_path, normal_path, mask_path, backbone, model_dir:str, Init_Epoch, device):
+    normal_tensor=img_masked(normal_path, mask_path)
+    model=get_model(backbone, False, model_dir, Init_Epoch, device)
+    uv=model(normal_tensor)
 
 
 if __name__ == "__main__":

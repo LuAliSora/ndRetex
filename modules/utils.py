@@ -103,7 +103,7 @@ def compute_d_y(ori):
     d_y[:, :, :, 1:] = temp
     return d_y
 
-def uvRex_loss(uv, normal):
+def uvRex_loss(normal, uv):
     """
     计算UV和Normal的损失函数
     
