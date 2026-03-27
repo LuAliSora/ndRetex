@@ -15,6 +15,7 @@ from torch.amp import GradScaler
 from pathlib import Path
 from tqdm import tqdm
 import csv
+import cv2
 
 from nets.unet import Unet
 from nets.unet_training import get_lr_scheduler, set_optimizer_lr, weights_init
@@ -73,6 +74,22 @@ def get_args() -> argparse.Namespace:
         "--batch_size",
         type=int,
         default=1
+    )
+    #predict
+    parser.add_argument(
+        "--input_folder",
+        type=str,
+        default=None,
+    )
+    parser.add_argument(
+        "--img",
+        type=str,
+        default=None,
+    )
+    parser.add_argument(
+        "--texture",
+        type=str,
+        default=None,
     )
     # print(parser.parse_args())
     return parser.parse_args()
@@ -215,10 +232,19 @@ def train_main(seed, backbone, pretrained, model_dir:str, Freeze_Train, batch_si
                 writer.writerow([epoch, f"{train_loss:.6f}", ""])
 
 
-def predict_main(ori_path, normal_path, mask_path, backbone, model_dir:str, Init_Epoch, device):
-    normal_tensor=img_masked(normal_path, mask_path)
+def predict_main(input_folder:str, img:str, texture:str, backbone, model_dir:str, Init_Epoch, device):
+    input_dir=Path(input_folder)
+    ori_path=input_dir/f"ori/{img}"
+    normal_path=input_dir/f"normal/{img}"
+    mask_path=input_dir/f"mask/{img}"
+
+    texture_path=input_dir/f"tex/{texture}"
+    texture_bgr = cv2.imread(texture_path)
+
+    normal_tensor=img_masked(normal_path, mask_path).unsqueeze(0).to(device) #[1, 3, H, W]
     model=get_model(backbone, False, model_dir, Init_Epoch, device)
-    uv=model(normal_tensor)
+    uv_tenosr=model(normal_tensor) #[1, 2, H, W]
+
 
 
 if __name__ == "__main__":
@@ -236,3 +262,12 @@ if __name__ == "__main__":
                    args.epoch_sum, 
                    device
                    )
+    else:
+        predict_main(args.input_folder,
+                     args.img, 
+                     args.texture, 
+                     args.backbone, 
+                     args.model_dir, 
+                     args.Init_Epoch, 
+                     device
+                     )

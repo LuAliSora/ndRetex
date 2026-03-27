@@ -22,20 +22,18 @@ def tensor2img(imgTensor, save_path:str):
     cv2.imwrite(save_path, img_bgr)
 
 
-@torch.no_grad()
-def img_masked(ori_path:str, mask_path:str):
-    ori_np = cv2.imread(ori_path)
-    ori_np = cv2.cvtColor(ori_np, cv2.COLOR_BGR2RGB)
-    mask_np = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
+def img2np_rgb(img_path:str):
+    img_np = cv2.imread(img_path)
+    img_rgb = cv2.cvtColor(img_np, cv2.COLOR_BGR2RGB)
+    return img_rgb
 
-    ori_float = ori_np.astype(np.float32)/ 255.0
-    # mask_np = mask_img.astype(np.float32)
-    
+
+def img_masked(ori_np, mask_np):
     binary_mask = (mask_np > 127)
-    ori_float[~binary_mask] = 0
+    res=ori_np.copy()
+    res[~binary_mask] = 0
 
-    res_tensor = torch.from_numpy(ori_float).permute(2, 0, 1).contiguous()
-    return res_tensor
+    return res
 
 
 def get_dataAug(trans_size_2D):
@@ -71,7 +69,11 @@ class Masked_ImgSet(data.Dataset):
         img_path=self.img_dir/img_name
         mask_path=self.mask_dir/img_name
 
-        img_tensor=img_masked(str(img_path), str(mask_path))
+        img = img2np_rgb(str(img_path)).astype(np.float32)/ 255.0
+        mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
+
+        res_np=img_masked(img, mask)
+        res_tensor = torch.from_numpy(res_np).permute(2, 0, 1).contiguous()
 
         # if self.transfm!=None:
         #     img_tensor = img_tensor.unsqueeze(0)  # (1, C, H, W)
@@ -79,7 +81,7 @@ class Masked_ImgSet(data.Dataset):
         #     img_tensor = img_tensor.squeeze(0)  # (C, H, W)
 
         # tensor2img(img_tensor, f"output/{normal_path.name}")
-        return img_tensor
+        return res_tensor
     
     def __len__(self):
         return len(self.img_list)
