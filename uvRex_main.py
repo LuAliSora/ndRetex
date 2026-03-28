@@ -41,6 +41,16 @@ def get_args() -> argparse.Namespace:
         default=3407,
     )
     parser.add_argument(
+        "--input_dir",
+        type=str,
+        default="input",
+    )
+    parser.add_argument(
+        "--model_dir",
+        type=str,
+        default="weights",
+    )
+    parser.add_argument(
         "--backbone",
         type=str,
         choices=['vgg', 'resnet50'],
@@ -72,11 +82,6 @@ def get_args() -> argparse.Namespace:
         default=1
     )
     #predict
-    parser.add_argument(
-        "--input_folder",
-        type=str,
-        default=None,
-    )
     parser.add_argument(
         "--img",
         type=str,
@@ -125,7 +130,7 @@ def get_model(backbone, pretrained, model_dir:str, Init_Epoch, device):
     return model
 
 
-def train_main(seed, backbone, pretrained, Freeze_Train, batch_size, Init_Epoch, epoch_sum, device):  
+def train_main(input_dir:str, model_dir:str, backbone, pretrained, Freeze_Train, batch_size, Init_Epoch, epoch_sum, device, seed):  
     if Init_Epoch<0 or Init_Epoch>epoch_sum:
         raise Exception("Require valid epoch!")
     
@@ -149,9 +154,10 @@ def train_main(seed, backbone, pretrained, Freeze_Train, batch_size, Init_Epoch,
 
     lr_decay_type       = 'cos'
 
-    input_dir=Path("input")
-    train_dir=input_dir/"train"
-    test_dir=input_dir/"test"
+    # input_dir=Path("input")
+    data_dir=Path(input_dir)
+    train_dir=data_dir/"train"
+    test_dir=data_dir/"test"
     img_folder="normal"
     mask_folder="mask"
 
@@ -184,7 +190,7 @@ def train_main(seed, backbone, pretrained, Freeze_Train, batch_size, Init_Epoch,
     test_len=len(test_dataset)
     test_per_epochs=train_len // test_len
 
-    model_dir="weights"
+    # model_dir="weights"
 
     model=get_model(backbone, pretrained, model_dir, Init_Epoch, device)
 
@@ -230,12 +236,12 @@ def train_main(seed, backbone, pretrained, Freeze_Train, batch_size, Init_Epoch,
                 writer.writerow([epoch, f"{train_loss:.6f}", ""])
 
 
-def predict_main(input_folder:str, img:str, texture:str, backbone, Init_Epoch, device):
-    input_dir=Path(input_folder)
-    ori_path=input_dir/f"ori/{img}"
-    normal_path=input_dir/f"normal/{img}"
-    mask_path=input_dir/f"mask/{img}"
-    texture_path=input_dir/f"tex/{texture}"
+def predict_main(input_dir:str, model_dir:str, img:str, texture:str, backbone, Init_Epoch, device):
+    data_dir=Path(input_dir)
+    ori_path=data_dir/f"ori/{img}"
+    normal_path=data_dir/f"normal/{img}"
+    mask_path=data_dir/f"mask/{img}"
+    texture_path=data_dir/f"tex/{texture}"
 
     mask_np = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
     binary_mask = (mask_np > 127)
@@ -245,7 +251,7 @@ def predict_main(input_folder:str, img:str, texture:str, backbone, Init_Epoch, d
     normal_tensor = torch.from_numpy(normal_masked).permute(2, 0, 1).contiguous()
     normal_tensor = normal_tensor.unsqueeze(0).to(device) #[1, 3, H, W]
 
-    model_dir="weights"
+    # model_dir="weights"
 
     model=get_model(backbone, False, model_dir, Init_Epoch, device)
     model.eval()
@@ -294,17 +300,20 @@ if __name__ == "__main__":
 
     device= torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     if args.mode=='train':
-        train_main(args.seed, 
+        train_main(args.input_dir, 
+                   args.model_dir,
                    args.backbone, 
                    args.pretrained, 
                    args.Freeze_Train, 
                    args.batch_size, 
                    args.Init_Epoch, 
                    args.epoch_sum, 
-                   device
+                   device,
+                   args.seed
                    )
     else:
-        predict_main(args.input_folder,
+        predict_main(args.input_dir,
+                     args.model_dir,
                      args.img, 
                      args.texture, 
                      args.backbone, 
