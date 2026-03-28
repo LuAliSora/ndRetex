@@ -52,11 +52,6 @@ def get_args() -> argparse.Namespace:
         default=False,
     )
     parser.add_argument(
-        "--model_dir",
-        type=str,
-        default='weights'
-    )
-    parser.add_argument(
         "--Freeze_Train",
         type=bool,
         default=True,
@@ -130,7 +125,7 @@ def get_model(backbone, pretrained, model_dir:str, Init_Epoch, device):
     return model
 
 
-def train_main(seed, backbone, pretrained, model_dir:str, Freeze_Train, batch_size, Init_Epoch, epoch_sum, device):  
+def train_main(seed, backbone, pretrained, Freeze_Train, batch_size, Init_Epoch, epoch_sum, device):  
     if Init_Epoch<0 or Init_Epoch>epoch_sum:
         raise Exception("Require valid epoch!")
     
@@ -189,6 +184,8 @@ def train_main(seed, backbone, pretrained, model_dir:str, Freeze_Train, batch_si
     test_len=len(test_dataset)
     test_per_epochs=train_len // test_len
 
+    model_dir="weights"
+
     model=get_model(backbone, pretrained, model_dir, Init_Epoch, device)
 
     if Freeze_Train:
@@ -223,7 +220,7 @@ def train_main(seed, backbone, pretrained, model_dir:str, Freeze_Train, batch_si
                 writer = csv.writer(f)
                 writer.writerow([epoch, f"{train_loss:.6f}", f"{test_loss:.6f}"])
 
-            torch.save(model.state_dict(), f"weights/uvRex_{backbone}_epoch{epoch}.pth")
+            torch.save(model.state_dict(), f"{model_dir}/uvRex_{backbone}_epoch{epoch}.pth")
 
         else:
             train_loss, _ = uvRex_train_one_epoch(model, optimizer, scaler, dataAug, device, train_loader)
@@ -233,7 +230,7 @@ def train_main(seed, backbone, pretrained, model_dir:str, Freeze_Train, batch_si
                 writer.writerow([epoch, f"{train_loss:.6f}", ""])
 
 
-def predict_main(input_folder:str, img:str, texture:str, backbone, model_dir:str, Init_Epoch, device):
+def predict_main(input_folder:str, img:str, texture:str, backbone, Init_Epoch, device):
     input_dir=Path(input_folder)
     ori_path=input_dir/f"ori/{img}"
     normal_path=input_dir/f"normal/{img}"
@@ -247,6 +244,8 @@ def predict_main(input_folder:str, img:str, texture:str, backbone, model_dir:str
     normal_masked =img_masked(normal_np, binary_mask)
     normal_tensor = torch.from_numpy(normal_masked).permute(2, 0, 1).contiguous()
     normal_tensor = normal_tensor.unsqueeze(0).to(device) #[1, 3, H, W]
+
+    model_dir="weights"
 
     model=get_model(backbone, False, model_dir, Init_Epoch, device)
     model.eval()
@@ -298,7 +297,6 @@ if __name__ == "__main__":
         train_main(args.seed, 
                    args.backbone, 
                    args.pretrained, 
-                   args.model_dir,
                    args.Freeze_Train, 
                    args.batch_size, 
                    args.Init_Epoch, 
@@ -310,7 +308,6 @@ if __name__ == "__main__":
                      args.img, 
                      args.texture, 
                      args.backbone, 
-                     args.model_dir, 
                      args.Init_Epoch, 
                      device
                      )
