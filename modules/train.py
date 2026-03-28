@@ -35,4 +35,4 @@ def uvRex_train_one_epoch(model, optimizer, scaler, dataAug, device, train_loade
 
         model.train()
     # print(train_loss, test_loss)
-    return train_loss/len(train_loader), test_loss/len(test_loader)
+    return train_loss, test_loss
