@@ -139,8 +139,6 @@ def train_main(input_dir:str, model_dir:str, backbone, pretrained, Freeze_Train,
 
     seed_everything(seed)
 
-    save_dir            = 'logs'
-
     Init_lr         = 1e-4
     Min_lr          = Init_lr * 0.01
     nbs             = 16
@@ -188,7 +186,7 @@ def train_main(input_dir:str, model_dir:str, backbone, pretrained, Freeze_Train,
     
     train_len=len(train_dataset)
     test_len=len(test_dataset)
-    test_per_epochs=train_len // test_len
+    test_per_epochs=train_len // test_len *10
 
     # model_dir="weights"
 
@@ -206,12 +204,12 @@ def train_main(input_dir:str, model_dir:str, backbone, pretrained, Freeze_Train,
 
     lr_scheduler_func = get_lr_scheduler(lr_decay_type, Init_lr_fit, Min_lr_fit, epoch_sum)
 
-    loss_log_file=f"{model_dir}/uvRex_{backbone}_loss.csv"
-    loss_log_path=Path(loss_log_file)
-    if loss_log_path.is_file()==False:
-        with open(loss_log_file, 'w', newline='') as f:
-            loss_writer = csv.writer(f)
-            loss_writer.writerow(['epoch', 'train_loss', 'test_loss'])
+    log_dir            = 'logs'
+    loss_log_file=f"{log_dir}/uvRex_{backbone}_loss_{Init_Epoch}.csv"
+
+    with open(loss_log_file, 'w', newline='') as f:
+        loss_writer = csv.writer(f)
+        loss_writer.writerow(['epoch', 'train_loss', 'test_loss'])
 
     epoch_range = range(Init_Epoch, epoch_sum)
     epoch_pbar = tqdm(epoch_range, desc='Training_Progress', unit='epoch')
