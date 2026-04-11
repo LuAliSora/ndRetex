@@ -4,27 +4,29 @@ import datetime
 # import os
 from functools import partial
 
-import numpy as np
+# import numpy as np
 import torch
-import torch.backends.cudnn as cudnn
-import torch.distributed as dist
+# import torch.backends.cudnn as cudnn
+# import torch.distributed as dist
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from torch.amp import GradScaler
-import torch.nn.functional as F
+# import torch.nn.functional as F
 
 from pathlib import Path
 from tqdm import tqdm
 import csv
-import cv2
+# import cv2
 
 from nets.unet import Unet
-from nets.unet_training import get_lr_scheduler, set_optimizer_lr, weights_init
+from nets.unet_training import get_lr_scheduler, set_optimizer_lr
 
 from modules.utils import (download_weights, seed_everything, show_config,
-                         worker_init_fn)
-from modules.dataPr import Masked_ImgSet, get_dataAug, img_masked, img2np_rgb
+                         worker_init_fn, uvRex_get_model)
+from modules.dataPr import Masked_ImgSet, get_dataAug
+
 from modules.train import uvRex_train_one_epoch
+from modules.predict import uvRex_predict_main
 
 def get_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
@@ -96,38 +98,7 @@ def get_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def get_model(backbone, pretrained, model_dir:str, Init_Epoch, device):
-    model = Unet(2, backbone, pretrained, model_dir)
 
-    if pretrained:
-        return model
-
-    if Init_Epoch==0:
-        weights_init(model)
-        return model
-    
-    # model_dir=Path("weights")
-    model_path=f"{model_dir}/uvRex_{backbone}_epoch{Init_Epoch}.pth"
-
-    print(f'Load weights {model_path}.')
-
-    model_dict      = model.state_dict()
-    pretrained_dict = torch.load(str(model_path), map_location = device)
-    load_key, no_load_key, temp_dict = [], [], {}
-    for k, v in pretrained_dict.items():
-        if k in model_dict.keys() and np.shape(model_dict[k]) == np.shape(v):
-            temp_dict[k] = v
-            load_key.append(k)
-        else:
-            no_load_key.append(k)
-    model_dict.update(temp_dict)
-    model.load_state_dict(model_dict)
-
-    print("\nSuccessful Load Key:", str(load_key)[:500], "……\nSuccessful Load Key Num:", len(load_key))
-    print("\nFail To Load Key:", str(no_load_key)[:500], "……\nFail To Load Key num:", len(no_load_key))
-    # print("\n\033[1;33;44m温馨提示，head部分没有载入是正常现象，Backbone部分没有载入是错误的。\033[0m")
-
-    return model
 
 
 def train_main(input_dir:str, model_dir:str, backbone, pretrained, Freeze_Train, batch_size, Init_Epoch, epoch_sum, device, seed):  
@@ -190,7 +161,7 @@ def train_main(input_dir:str, model_dir:str, backbone, pretrained, Freeze_Train,
 
     # model_dir="weights"
 
-    model=get_model(backbone, pretrained, model_dir, Init_Epoch, device)
+    model=uvRex_get_model(backbone, pretrained, model_dir, Init_Epoch, device)
 
     if Freeze_Train:
         model.freeze_backbone()
@@ -234,63 +205,7 @@ def train_main(input_dir:str, model_dir:str, backbone, pretrained, Freeze_Train,
                 writer.writerow([epoch, f"{train_loss:.6f}", ""])
 
 
-def predict_main(input_dir:str, model_dir:str, img:str, texture:str, backbone, Init_Epoch, device):
-    data_dir=Path(input_dir)
-    ori_path=data_dir/f"ori/{img}"
-    normal_path=data_dir/f"normal/{img}"
-    mask_path=data_dir/f"mask/{img}"
-    texture_path=data_dir/f"tex/{texture}"
 
-    mask_np = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
-    binary_mask = (mask_np > 127)
-
-    normal_np = img2np_rgb(normal_path).astype(np.float32)/ 255.0
-    normal_masked =img_masked(normal_np, binary_mask)
-    normal_tensor = torch.from_numpy(normal_masked).permute(2, 0, 1).contiguous()
-    normal_tensor = normal_tensor.unsqueeze(0).to(device) #[1, 3, H, W]
-
-    # model_dir="weights"
-
-    model=get_model(backbone, False, model_dir, Init_Epoch, device)
-    model.eval()
-    model.to(device)
-
-    with torch.no_grad():
-        uv_tensor=model(normal_tensor) #[1, 2, H, W]
-
-    print(f"UV_range: [{uv_tensor.min():.3f}, {uv_tensor.max():.3f}]")
-
-    uv_sampler = uv_tensor.clone().cpu()
-    uv_min = uv_sampler.min()
-    uv_max = uv_sampler.max()
-    uv_sampler = (uv_sampler - uv_min) / (uv_max - uv_min) * 2 - 1
-    uv_grid = uv_sampler.permute(0, 2, 3, 1) # [1, H, W, 2]
-
-    texture_np = img2np_rgb(texture_path).astype(np.float32)/ 255.0
-    texture_tensor = torch.from_numpy(texture_np).permute(2, 0, 1).contiguous() 
-    texture_tensor = texture_tensor.unsqueeze(0) # [1, 3, H_tex, W_tex]
-
-    sampled_color = F.grid_sample(
-        texture_tensor,
-        uv_grid,
-        mode='bilinear',
-        padding_mode='border',
-        align_corners=True
-    ) 
-
-    retex_np = sampled_color.squeeze(0).permute(1, 2, 0).cpu().numpy()  # [H, W, 3]
-    retex_int = (retex_np * 255.0).astype(np.uint8)
-
-    ori_np = img2np_rgb(ori_path)
-
-    mask_3ch = np.stack([binary_mask]*3, axis=2)
-
-    result_np = np.where(mask_3ch, retex_int, ori_np)
-
-    output_dir=Path("output")
-    output_dir.mkdir(exist_ok=True)
-    res_path=output_dir/img
-    cv2.imwrite(str(res_path), cv2.cvtColor(result_np, cv2.COLOR_RGB2BGR))
 
 
 if __name__ == "__main__":
@@ -310,7 +225,7 @@ if __name__ == "__main__":
                    args.seed
                    )
     else:
-        predict_main(args.input_dir,
+        uvRex_predict_main(args.input_dir,
                      args.model_dir,
                      args.img, 
                      args.texture, 

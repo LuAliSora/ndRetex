@@ -4,6 +4,9 @@ import numpy as np
 import torch
 # from PIL import Image
 
+from nets.unet_training import weights_init
+from nets.unet import Unet
+
 
 #---------------------------------------------------------#
 #   将图像转换成RGB图像，防止灰度图在预测时报错。
@@ -88,6 +91,41 @@ def download_weights(backbone, model_dir="./model_data"):
         os.makedirs(model_dir)
     load_state_dict_from_url(url, model_dir)
 
+#---------------------------------------------------#
+# get_model
+#---------------------------------------------------#
+def uvRex_get_model(backbone, pretrained, model_dir:str, Init_Epoch, device):
+    model = Unet(2, backbone, pretrained, model_dir)
+
+    if pretrained:
+        return model
+
+    if Init_Epoch==0:
+        weights_init(model)
+        return model
+    
+    # model_dir=Path("weights")
+    model_path=f"{model_dir}/uvRex_{backbone}_epoch{Init_Epoch}.pth"
+
+    print(f'Load weights {model_path}.')
+
+    model_dict      = model.state_dict()
+    pretrained_dict = torch.load(str(model_path), map_location = device)
+    load_key, no_load_key, temp_dict = [], [], {}
+    for k, v in pretrained_dict.items():
+        if k in model_dict.keys() and np.shape(model_dict[k]) == np.shape(v):
+            temp_dict[k] = v
+            load_key.append(k)
+        else:
+            no_load_key.append(k)
+    model_dict.update(temp_dict)
+    model.load_state_dict(model_dict)
+
+    print("\nSuccessful Load Key:", str(load_key)[:500], "……\nSuccessful Load Key Num:", len(load_key))
+    print("\nFail To Load Key:", str(no_load_key)[:500], "……\nFail To Load Key num:", len(no_load_key))
+    # print("\n\033[1;33;44m温馨提示，head部分没有载入是正常现象，Backbone部分没有载入是错误的。\033[0m")
+
+    return model
 #---------------------------------------------------#
 def compute_d_x(ori):
     """计算x方向梯度，支持batch维度"""
