@@ -18,7 +18,7 @@ from tqdm import tqdm
 import csv
 # import cv2
 
-from nets.unet import Unet
+# from nets.unet import Unet
 from nets.unet_training import get_lr_scheduler, set_optimizer_lr
 
 from modules.utils import (download_weights, seed_everything, show_config,
@@ -27,6 +27,7 @@ from modules.dataPr import Masked_ImgSet, get_dataAug
 
 from modules.train import uvRex_train_one_epoch
 from modules.predict import uvRex_predict_main
+
 
 def get_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
@@ -96,9 +97,6 @@ def get_args() -> argparse.Namespace:
     )
     # print(parser.parse_args())
     return parser.parse_args()
-
-
-
 
 
 def train_main(input_dir:str, model_dir:str, backbone, pretrained, Freeze_Train, batch_size, Init_Epoch, epoch_sum, device, seed):  
@@ -203,9 +201,6 @@ def train_main(input_dir:str, model_dir:str, backbone, pretrained, Freeze_Train,
             with open(loss_log_file, 'a', newline='') as f:
                 writer = csv.writer(f)
                 writer.writerow([epoch, f"{train_loss:.6f}", ""])
-
-
-
 
 
 if __name__ == "__main__":
