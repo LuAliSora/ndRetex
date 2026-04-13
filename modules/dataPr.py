@@ -87,7 +87,7 @@ class Masked_ImgSet(data.Dataset):
         return len(self.img_list)
     
 
-class Masked_ImgSet(data.Dataset):
+class Rex_ImgSet(data.Dataset):
 
     def __init__(self, data_dir:str,  model_dir:str, backbone, device):
         img_dir=Path(data_dir)
