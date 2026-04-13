@@ -24,11 +24,9 @@ def get_binary_mask(mask_path:str):
     return  binary_mask
 
 
-def img_masked(ori_np, binary_mask):
-    
+def img_masked(ori_np, binary_mask):  
     res=ori_np.copy()
     res[~binary_mask] = 0
-
     return res
 
 
