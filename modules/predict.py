@@ -38,7 +38,7 @@ def uvRex_predict_main(input_dir:str, model_dir:str, img:str, texture:str, backb
 
     print(f"UV_range: [{y.min():.3f}, {y.max():.3f}]")
 
-    uv_tensor = y.clone().cpu()
+    uv_tensor = y.clone().cpu().float()
     uv_min = uv_tensor.min()
     uv_max = uv_tensor.max()
     uv_tensor = (uv_tensor - uv_min) / (uv_max - uv_min) * 2 - 1
