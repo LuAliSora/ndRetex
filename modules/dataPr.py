@@ -12,16 +12,6 @@ import cv2
 import kornia.augmentation as K
 
 
-@torch.no_grad()
-def tensor2img(imgTensor, save_path:str):
-    tensor_copy=imgTensor.detach().cpu()
-    img_np= tensor_copy.permute(1, 2, 0).numpy().clip(0, 1)
-    img_np= (img_np * 255).astype(np.uint8)
-
-    img_bgr = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
-    cv2.imwrite(save_path, img_bgr)
-
-
 def img2np_rgb(img_path:str):
     img_np = cv2.imread(img_path)
     img_rgb = cv2.cvtColor(img_np, cv2.COLOR_BGR2RGB)
