@@ -1,7 +1,6 @@
 import torch
 from torch.amp import autocast
 
-from modules.dataPr import tensor2img
 from modules.utils import uvRex_loss
 
 def uvRex_train_one_epoch(model, optimizer, scaler, dataAug, device, train_loader, test_loader=None):
