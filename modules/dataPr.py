@@ -30,7 +30,7 @@ def img2np_rgb(img_path:str):
 
 def get_binary_mask(mask_path:str):
     mask_np = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
-    binary_mask = (mask_np > 127)
+    binary_mask = (mask_np > 127)# [H,W]
     return  binary_mask
 
 
