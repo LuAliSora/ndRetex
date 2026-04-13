@@ -4,6 +4,7 @@ import numpy as np
 
 import torch
 import torch.nn.functional as F
+from torch.amp import autocast
 
 from modules.dataPr import img_masked, img2np_rgb
 from modules.utils import  uvRex_get_model
@@ -22,7 +23,7 @@ def uvRex_predict_main(input_dir:str, model_dir:str, img:str, texture:str, backb
     normal_np = img2np_rgb(normal_path).astype(np.float32)/ 255.0
     normal_masked =img_masked(normal_np, binary_mask)
     normal_tensor = torch.from_numpy(normal_masked).permute(2, 0, 1).contiguous()
-    normal_tensor = normal_tensor.unsqueeze(0).to(device) #[1, 3, H, W]
+    normal_tensor = normal_tensor.unsqueeze(0) #[1, 3, H, W]
 
     # model_dir="weights"
 
@@ -31,15 +32,17 @@ def uvRex_predict_main(input_dir:str, model_dir:str, img:str, texture:str, backb
     model.to(device)
 
     with torch.no_grad():
-        uv_tensor=model(normal_tensor) #[1, 2, H, W]
+        with autocast(device.type):
+            x = normal_tensor.to(device)
+            y = model(x) #[1, 2, H, W]
 
-    print(f"UV_range: [{uv_tensor.min():.3f}, {uv_tensor.max():.3f}]")
+    print(f"UV_range: [{y.min():.3f}, {y.max():.3f}]")
 
-    uv_sampler = uv_tensor.clone().cpu()
-    uv_min = uv_sampler.min()
-    uv_max = uv_sampler.max()
-    uv_sampler = (uv_sampler - uv_min) / (uv_max - uv_min) * 2 - 1
-    uv_grid = uv_sampler.permute(0, 2, 3, 1) # [1, H, W, 2]
+    uv_tensor = y.clone().cpu()
+    uv_min = uv_tensor.min()
+    uv_max = uv_tensor.max()
+    uv_tensor = (uv_tensor - uv_min) / (uv_max - uv_min) * 2 - 1
+    uv_grid = uv_tensor.permute(0, 2, 3, 1) # [1, H, W, 2]
 
     texture_np = img2np_rgb(texture_path).astype(np.float32)/ 255.0
     texture_tensor = torch.from_numpy(texture_np).permute(2, 0, 1).contiguous() 
