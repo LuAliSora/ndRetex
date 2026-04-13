@@ -22,8 +22,8 @@ def img2tensor_rgb(img_path:str, binary_mask=None):
     img_np = img2np_rgb(img_path).astype(np.float32)/ 255.0
     if binary_mask is not None:
         img_np =img_masked(img_np, binary_mask)
-    img_tensor = torch.from_numpy(img_np).permute(2, 0, 1).contiguous()
-    img_tensor = img_tensor.unsqueeze(0) #[1, 3, H, W]
+    img_tensor = torch.from_numpy(img_np).permute(2, 0, 1).contiguous()#[3,H,W]
+    # img_tensor = img_tensor.unsqueeze(0) #[1, 3, H, W]
     return img_tensor
 
 

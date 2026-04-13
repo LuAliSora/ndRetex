@@ -210,10 +210,11 @@ def predict_main(input_dir:str, model_dir:str, img:str, texture:str, backbone, I
     normal_path=data_dir/f"normal/{img}"
     texture_path=data_dir/f"tex/{texture}"
 
-    ori_tensor=img2tensor_rgb(ori_path)
+    ori_tensor=img2tensor_rgb(ori_path).unsqueeze(0)
+    texture_tensor=img2tensor_rgb(texture_path).unsqueeze(0)
+
     binary_mask= get_binary_mask(mask_path)
-    normal_tensor=img2tensor_rgb(normal_path, binary_mask)
-    texture_tensor=img2tensor_rgb(texture_path)
+    normal_tensor=img2tensor_rgb(normal_path, binary_mask).unsqueeze(0)
 
     mask_tensor=torch.from_numpy(binary_mask).unsqueeze(0)# [1,H,W]
     res_tensor=uvRex_predict(ori_tensor, mask_tensor, normal_tensor, texture_tensor, model_dir, backbone, Init_Epoch, device)
