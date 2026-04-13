@@ -23,7 +23,7 @@ from nets.unet_training import get_lr_scheduler, set_optimizer_lr
 
 from modules.utils import (download_weights, seed_everything, show_config,
                          worker_init_fn, uvRex_get_model)
-from modules.dataPr import Masked_ImgSet, get_dataAug, img_masked, img2np_rgb, get_binary_mask
+from modules.dataPr import Masked_ImgSet, get_dataAug, img_masked, img2np_rgb, get_binary_mask, img2tensor_rgb
 
 from modules.train import uvRex_train_one_epoch
 from modules.predict import uvRex_predict
@@ -210,20 +210,10 @@ def predict_main(input_dir:str, model_dir:str, img:str, texture:str, backbone, I
     normal_path=data_dir/f"normal/{img}"
     texture_path=data_dir/f"tex/{texture}"
 
-    ori_np = img2np_rgb(ori_path).astype(np.float32)/ 255.0
-    ori_tensor = torch.from_numpy(ori_np).permute(2, 0, 1).contiguous()
-    ori_tensor = ori_tensor.unsqueeze(0) #[1, 3, H, W]
-
+    ori_tensor=img2tensor_rgb(ori_path)
     binary_mask= get_binary_mask(mask_path)
-
-    normal_np = img2np_rgb(normal_path).astype(np.float32)/ 255.0
-    normal_masked =img_masked(normal_np, binary_mask)
-    normal_tensor = torch.from_numpy(normal_masked).permute(2, 0, 1).contiguous()
-    normal_tensor = normal_tensor.unsqueeze(0) #[1, 3, H, W]
-
-    texture_np = img2np_rgb(texture_path).astype(np.float32)/ 255.0
-    texture_tensor = torch.from_numpy(texture_np).permute(2, 0, 1).contiguous() 
-    texture_tensor = texture_tensor.unsqueeze(0) # [1, 3, H_tex, W_tex]
+    normal_tensor=img2tensor_rgb(normal_path, binary_mask)
+    texture_tensor=img2tensor_rgb(texture_path)
 
     mask_tensor=torch.from_numpy(binary_mask).unsqueeze(0)# [1,H,W]
     res_tensor=uvRex_predict(ori_tensor, mask_tensor, normal_tensor, texture_tensor, model_dir, backbone, Init_Epoch, device)

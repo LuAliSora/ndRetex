@@ -18,6 +18,15 @@ def img2np_rgb(img_path:str):
     return img_rgb
 
 
+def img2tensor_rgb(img_path:str, binary_mask=None):
+    img_np = img2np_rgb(img_path).astype(np.float32)/ 255.0
+    if binary_mask!=None:
+        img_np =img_masked(img_np, binary_mask)
+    img_tensor = torch.from_numpy(img_np).permute(2, 0, 1).contiguous()
+    img_tensor = img_tensor.unsqueeze(0) #[1, 3, H, W]
+    return img_tensor
+
+
 def get_binary_mask(mask_path:str):
     mask_np = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
     binary_mask = (mask_np > 127)# [H,W]
@@ -46,8 +55,8 @@ def get_dataAug(trans_size_2D=[512, 512]):
 
 class Masked_ImgSet(data.Dataset):
 
-    def __init__(self, img_dir:str, mask_dir:str):
-        self.img_dir=Path(img_dir)
+    def __init__(self, data_dir:str, mask_dir:str):
+        self.img_dir=Path(data_dir)
         self.mask_dir=Path(mask_dir)
         
         self.img_list = sorted([str(img.name) for img in (self.img_dir).glob('*.jpg')])
@@ -81,3 +90,23 @@ class Masked_ImgSet(data.Dataset):
     def __len__(self):
         return len(self.img_list)
     
+
+class Masked_ImgSet(data.Dataset):
+
+    def __init__(self, data_dir:str,  model_dir:str, backbone, device):
+        img_dir=Path(data_dir)
+        self.ori_dir=img_dir/"ori"
+        self.mask_dir=img_dir/"mask"
+        self.normal_dir=img_dir/"normal"
+        self.texture_dir=img_dir/"tex"
+
+        self.img_list = sorted([str(img.name) for img in (self.ori_dir).glob('*.jpg')])
+        self.tex_list = sorted([str(tex.name) for tex in (self.texture_dir).glob('*.jpg')])
+
+        self.tex_num=len(self.tex_list)
+
+    @torch.no_grad()
+    def __getitem__(self, index):
+        img_name=self.img_list[index]
+        tex_name=self.tex_list[index%(self.tex_num)]
+
