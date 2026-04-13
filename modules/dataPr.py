@@ -89,7 +89,7 @@ class Masked_ImgSet(data.Dataset):
 
 class Rex_ImgSet(data.Dataset):
 
-    def __init__(self, data_dir:str,  model_dir:str, backbone, device):
+    def __init__(self, data_dir:str):
         img_dir=Path(data_dir)
         self.ori_dir=img_dir/"ori"
         self.mask_dir=img_dir/"mask"
