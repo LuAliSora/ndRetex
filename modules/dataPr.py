@@ -120,6 +120,9 @@ class Masked_ImgSet(data.Dataset):
         mask_tensor=torch.from_numpy(binary_mask)# [H,W]
 
         return ori_tensor, mask_tensor, normal_tensor, tex_tensor
+    
+    def __len__(self):
+        return len(self.img_list)
 
 
 
