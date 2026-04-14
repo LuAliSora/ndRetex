@@ -163,17 +163,29 @@ def uvRex_loss(normal, uv):
     ny = normal[:, 1:2]  # [B, 1, H, W]
     nz = normal[:, 2:3]  # [B, 1, H, W]
     
-    epsilon = 1e-8
+    epsilon = 1e-6
+
+    norm_n = torch.sqrt(nx**2 + ny**2 + nz**2 + epsilon)
+    nx = nx / norm_n
+    ny = ny / norm_n
+    nz = nz / norm_n
     
     # 几何损失
-    loss_geo = (du_x**2 + dv_x**2 - 1 - nx**2 / (nz**2 + epsilon))**2 + \
-               (du_y**2 + dv_y**2 - 1 - ny**2 / (nz**2 + epsilon))**2 + \
-               (du_x * du_y + dv_x * dv_y - 1 - nx * ny / (nz**2 + epsilon))**2
+    nz_square = nz**2 + epsilon
+    geo1= du_x**2 + dv_x**2 - 1 - nx**2 / nz_square
+    geo2= du_y**2 + dv_y**2 - 1 - ny**2 / nz_square
+    geo3= du_x * du_y + dv_x * dv_y - (nx * ny) / nz_square
+    loss_geo= geo1**2 + geo2**2 + geo3**2
     
     # Z方向约束
-    loss_z = torch.clamp(du_x * dv_y - du_y * dv_x, min=0)
+    jacobian = du_x * dv_y - du_y * dv_x
+    loss_flip = torch.relu(-jacobian)
+    loss_area = (jacobian - 1.0)**2
+
+    # 平滑性约束
+    loss_smooth = (du_x**2 + du_y**2 + dv_x**2 + dv_y**2).mean()
     
     # 计算平均损失（而不是总和）
-    loss_fin = loss_geo.mean() + 0.01 * loss_z.mean()
+    loss_fin = loss_geo.mean() + 0.1 * loss_flip.mean()+ 0.1 * loss_area.mean()+ 0.01 * loss_smooth.mean()
     
     return loss_fin
