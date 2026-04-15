@@ -180,12 +180,12 @@ def uvRex_loss(normal, uv):
     # Z方向约束
     jacobian = du_x * dv_y - du_y * dv_x
     loss_flip = torch.relu(-jacobian)
-    loss_area = (jacobian - 1.0)**2
+    # loss_area = (jacobian - 1.0)**2
 
     # 平滑性约束
     loss_smooth = (du_x**2 + du_y**2 + dv_x**2 + dv_y**2).mean()
     
     # 计算平均损失（而不是总和）
-    loss_fin = loss_geo.mean() + 0.1 * loss_flip.mean()+ 0.1 * loss_area.mean()+ 0.01 * loss_smooth.mean()
+    loss_fin = loss_geo.mean() + 0.1 * loss_flip.mean()+ 0.01 * loss_smooth.mean()
     
     return loss_fin
