@@ -209,7 +209,7 @@ def predict_main(input_dir:str, model_dir:str, img:str, texture:str, backbone, I
     normal_path=data_dir/f"normal/{img}"
     texture_path=data_dir/f"tex/{texture}"
 
-    ori_tensor=img2tensor_rgb(ori_path).unsqueeze(0)
+    ori_tensor=img2tensor_rgb(ori_path).unsqueeze(0)# [1,3,H,W]
     texture_tensor=img2tensor_rgb(texture_path).unsqueeze(0)
 
     binary_mask= get_binary_mask(mask_path)
