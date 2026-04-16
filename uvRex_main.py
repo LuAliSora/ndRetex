@@ -159,13 +159,12 @@ def train_main(input_dir:str, model_dir:str, backbone, pretrained, Freeze_Train,
 
     # model_dir="weights"
 
-    model=uvRex_get_model(backbone, pretrained, model_dir, Init_Epoch, device)
+    model=uvRex_get_model(backbone, pretrained, model_dir, Init_Epoch, device).to(device)
 
     if Freeze_Train:
         model.freeze_backbone()
 
     model.train()
-    model.to(device)
 
     scaler = GradScaler()
 
@@ -218,7 +217,8 @@ def predict_main(input_dir:str, model_dir:str, img:str, texture:str, backbone, I
 
     mask_tensor=torch.from_numpy(binary_mask).unsqueeze(0)# [1,H,W]
 
-    model=uvRex_get_model(backbone, False, model_dir, Init_Epoch, device)
+    model=uvRex_get_model(backbone, False, model_dir, Init_Epoch, device).to(device)
+    model.eval()
     
     res_tensor=uvRex_predict(ori_tensor, mask_tensor, normal_tensor, texture_tensor, model, device)
 

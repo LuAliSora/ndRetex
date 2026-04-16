@@ -8,8 +8,8 @@ from modules.utils import  uvRex_get_model
 def uvRex_predict(ori_tensor, binary_mask, normal_tensor, texture_tensor, model, device):
     # model_dir="weights"
     # model=uvRex_get_model(backbone, False, model_dir, Init_Epoch, device)
-    model.eval()
-    model.to(device)
+    # model.eval()
+    # model.to(device)
 
     with torch.no_grad():
         with autocast(device.type):
