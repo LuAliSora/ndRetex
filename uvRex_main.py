@@ -180,7 +180,7 @@ def train_main(input_dir:str, model_dir:str, backbone, pretrained, Freeze_Train,
         loss_writer.writerow(['epoch', 'train_loss', 'test_loss'])
 
     epoch_range = range(Init_Epoch, epoch_sum)
-    epoch_pbar = tqdm(epoch_range, desc='Training_Progress', unit='epoch')
+    epoch_pbar = tqdm(epoch_range, desc='Training_Progress', unit='epoch', position=0, leave=True)
 
     for epoch in epoch_pbar:
         set_optimizer_lr(optimizer, lr_scheduler_func, epoch)
