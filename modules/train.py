@@ -46,7 +46,9 @@ def sd_train_one_epoch(uvRex_model, device, train_loader, test_loader=None):
     for i, data in enumerate(train_loader):             
         ori, mask, normal, tex = data
         rough=uvRex_predict(ori, mask, normal, tex, uvRex_model, device).to(device)
-        print(rough.shape)
+        [ori, mask, normal, tex]= [data_i.to(device) for data_i in data]
+        
+
         
 
                  
