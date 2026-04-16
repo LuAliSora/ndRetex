@@ -108,19 +108,6 @@ def train_main(input_dir:str, model_dir:str, backbone, pretrained, Freeze_Train,
 
     seed_everything(seed)
 
-    Init_lr         = 1e-4
-    Min_lr          = Init_lr * 0.01
-    nbs             = 16
-    lr_limit_max    = 1e-4 
-    lr_limit_min    = 1e-4 
-    Init_lr_fit     = min(max(batch_size / nbs * Init_lr, lr_limit_min), lr_limit_max)
-    Min_lr_fit      = min(max(batch_size / nbs * Min_lr, lr_limit_min * 1e-2), lr_limit_max * 1e-2)
-
-    momentum            = 0.9
-    weight_decay        = 0
-
-    lr_decay_type       = 'cos'
-
     # input_dir=Path("input")
     data_dir=Path(input_dir)
     train_dir=data_dir/"train"
@@ -158,7 +145,6 @@ def train_main(input_dir:str, model_dir:str, backbone, pretrained, Freeze_Train,
     test_per_epochs=train_len // test_len *10
 
     # model_dir="weights"
-
     model=uvRex_get_model(backbone, pretrained, model_dir, Init_Epoch, device).to(device)
 
     if Freeze_Train:
@@ -166,7 +152,21 @@ def train_main(input_dir:str, model_dir:str, backbone, pretrained, Freeze_Train,
 
     model.train()
 
+    #Optimizer
     scaler = GradScaler()
+
+    Init_lr         = 1e-4
+    Min_lr          = Init_lr * 0.01
+    nbs             = 16
+    lr_limit_max    = 1e-4 
+    lr_limit_min    = 1e-4 
+    Init_lr_fit     = min(max(batch_size / nbs * Init_lr, lr_limit_min), lr_limit_max)
+    Min_lr_fit      = min(max(batch_size / nbs * Min_lr, lr_limit_min * 1e-2), lr_limit_max * 1e-2)
+
+    momentum            = 0.9
+    weight_decay        = 1e-8
+
+    lr_decay_type       = 'cos'
 
     optimizer=optim.Adam(model.parameters(), Init_lr_fit, betas = (momentum, 0.999), weight_decay = weight_decay)
 
