@@ -77,12 +77,12 @@ def get_args() -> argparse.Namespace:
     parser.add_argument(
         "--epoch_sum",
         type=int,
-        default=0
+        default=1
     )
     parser.add_argument(
         "--batch_size",
         type=int,
-        default=1
+        default=2
     )
     #predict
     parser.add_argument(
