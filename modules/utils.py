@@ -107,7 +107,7 @@ def uvRex_get_model(backbone, pretrained, model_dir:str, Init_Epoch, device):
     # model_dir=Path("weights")
     model_path=f"{model_dir}/uvRex_{backbone}_epoch{Init_Epoch}.pth"
 
-    print(f'Load weights {model_path}.')
+    print(f'Load uvRex_weights {model_path}.')
 
     model_dict      = model.state_dict()
     pretrained_dict = torch.load(str(model_path), map_location = device)
