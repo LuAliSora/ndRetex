@@ -2,6 +2,7 @@ import torch
 from torch.utils import data
 # import torch.nn.functional as F
 # import torchvision.transforms as transforms
+from torch.utils.data import default_collate
 
 import numpy as np
 
@@ -101,6 +102,8 @@ class Rex_ImgSet(data.Dataset):
 
         self.tex_num=len(self.tex_list)
 
+        self.prompt="clothes_prompt"
+
     @torch.no_grad()
     def __getitem__(self, index):
         img_name=self.img_list[index]
@@ -119,10 +122,38 @@ class Rex_ImgSet(data.Dataset):
 
         mask_tensor=torch.from_numpy(binary_mask)# [H,W]
 
-        return ori_tensor, mask_tensor, normal_tensor, tex_tensor
+        return ori_tensor, mask_tensor, normal_tensor, tex_tensor, self.prompt
     
     def __len__(self):
         return len(self.img_list)
+    
+
+#collate_fn
+def sd_collate_fn(batch):
+    """
+    自定义 collate_fn 用于处理数据集返回的混合类型数据
+    
+    Args:
+        batch: list of tuples, 每个tuple包含 (ori_tensor, mask_tensor, normal_tensor, tex_tensor, prompt)
+    
+    Returns:
+        dict: 包含批量化后的数据
+    """
+    # 解包batch中的各个元素
+    ori_list = [item[0] for item in batch]
+    mask_list = [item[1] for item in batch]
+    normal_list = [item[2] for item in batch]
+    tex_list = [item[3] for item in batch]
+    prompts = [item[4] for item in batch]
+    
+    # 对于tensor数据，使用default_collate进行批量化
+    ori_batch = default_collate(ori_list)      # [B, 3, H, W]
+    mask_batch = default_collate(mask_list)    # [B, H, W]
+    normal_batch = default_collate(normal_list) # [B, 3, H, W]
+    tex_batch = default_collate(tex_list)      # [B, 3, H, W]
+    
+    return ori_batch, mask_batch, normal_batch, tex_batch, prompts
+
 
 
 
