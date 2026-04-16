@@ -219,6 +219,7 @@ def predict_main(input_dir:str, model_dir:str, img:str, texture:str, backbone, I
     mask_tensor=torch.from_numpy(binary_mask).unsqueeze(0)# [1,H,W]
 
     model=uvRex_get_model(backbone, False, model_dir, Init_Epoch, device)
+    
     res_tensor=uvRex_predict(ori_tensor, mask_tensor, normal_tensor, texture_tensor, model, device)
 
     #img_save
