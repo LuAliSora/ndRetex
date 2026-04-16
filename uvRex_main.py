@@ -129,7 +129,7 @@ def train_main(input_dir:str, model_dir:str, backbone, pretrained, Freeze_Train,
     mask_folder="mask"
 
     train_dataset   = Masked_ImgSet(str(train_dir/img_folder), str(train_dir/mask_folder))
-    test_dataset     = Masked_ImgSet(str(test_dir/img_folder), str(test_dir/mask_folder))
+    test_dataset    = Masked_ImgSet(str(test_dir/img_folder), str(test_dir/mask_folder))
 
     trans_size=[512, 512]  
     dataAug=get_dataAug(trans_size)
@@ -205,7 +205,7 @@ def train_main(input_dir:str, model_dir:str, backbone, pretrained, Freeze_Train,
 
 def predict_main(input_dir:str, model_dir:str, img:str, texture:str, backbone, Init_Epoch, device):
     data_dir=Path(input_dir)
-    ori_path=data_dir/f"ori/{img}"
+    ori_path=data_dir/f"cloth/{img}"
     mask_path=data_dir/f"mask/{img}"
     normal_path=data_dir/f"normal/{img}"
     texture_path=data_dir/f"tex/{texture}"
@@ -217,7 +217,9 @@ def predict_main(input_dir:str, model_dir:str, img:str, texture:str, backbone, I
     normal_tensor=img2tensor_rgb(normal_path, binary_mask).unsqueeze(0)
 
     mask_tensor=torch.from_numpy(binary_mask).unsqueeze(0)# [1,H,W]
-    res_tensor=uvRex_predict(ori_tensor, mask_tensor, normal_tensor, texture_tensor, model_dir, backbone, Init_Epoch, device)
+
+    model=uvRex_get_model(backbone, False, model_dir, Init_Epoch, device)
+    res_tensor=uvRex_predict(ori_tensor, mask_tensor, normal_tensor, texture_tensor, model, device)
 
     #img_save
     output_dir=Path("output")
