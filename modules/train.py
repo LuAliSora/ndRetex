@@ -50,7 +50,6 @@ def sd_train_one_epoch(accelerator, uvRex_model, vae, noise_scheduler, tokenizer
         with accelerator.accumulate(texture_controlnet):          
             ori, mask, normal, tex, prompt = data
             rough=uvRex_predict(ori, mask, normal, tex, uvRex_model, device).to(device)
-            [ori, mask, normal, tex, prompt]= [data_i.to(device) for data_i in data]
             print(prompt)
             
             # with torch.no_grad():

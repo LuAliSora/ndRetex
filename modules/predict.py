@@ -13,12 +13,12 @@ def uvRex_predict(ori_tensor, binary_mask, normal_tensor, texture_tensor, model,
 
     with torch.no_grad():
         with autocast(device.type):
-            x = normal_tensor.to(device)
+            x = normal_tensor
             y = model(x) #[B, 2, H, W]
 
     # print(f"UV_range: [{y.min():.3f}, {y.max():.3f}]")
 
-    uv_tensor = y.clone().cpu().float()
+    uv_tensor = y.clone().float()
     B, _, H, W = uv_tensor.shape
 
     # uv_normalized

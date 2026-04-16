@@ -192,7 +192,12 @@ def train_main(input_dir:str, uvRex_model_dict, tex_pretrained, Freeze_Train, ba
 
     # Load_model
     print("Load_model.")
-    uvRex_model=uvRex_get_model(args.uvrex_backbone, False, args.uvrex_model_dir, args.uvrex_Epoch, device)
+    uvRex_model=uvRex_get_model(uvRex_model_dict["backbone"], 
+                                uvRex_model_dict["pretrained"], 
+                                uvRex_model_dict["model_dir"], 
+                                uvRex_model_dict["Init_Epoch"], 
+                                device
+                                ).half().to(device)
 
     vae = AutoencoderKL.from_pretrained(
         MODEL_DICT["sd"], 
@@ -335,8 +340,6 @@ if __name__ == "__main__":
         "Init_Epoch":args.uvrex_Epoch
     }
     
-    
-
     if args.mode=='train':
         train_main(args.input_dir, 
                    uvRex_model_dict, 
