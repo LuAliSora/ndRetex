@@ -42,7 +42,7 @@ from transformers import CLIPTokenizer, CLIPTextModel
 
 from modules.utils import (download_weights, seed_everything, show_config,
                          worker_init_fn, uvRex_get_model)
-from modules.dataPr import Rex_ImgSet
+from modules.dataPr import Rex_ImgSet, sd_collate_fn
 from modules.train import sd_train_one_epoch
 
 MODEL_DICT = {
@@ -134,7 +134,7 @@ def get_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def train_main(input_dir:str, uvRex_model, tex_pretrained, Freeze_Train, batch_size, Init_Epoch, epoch_sum, device, seed): 
+def train_main(input_dir:str, uvRex_model_dict, tex_pretrained, Freeze_Train, batch_size, grad_acc_steps, Init_Epoch, epoch_sum, seed): 
     if Init_Epoch<0 or Init_Epoch>epoch_sum:
         raise Exception("Require valid epoch!")
     
@@ -154,6 +154,7 @@ def train_main(input_dir:str, uvRex_model, tex_pretrained, Freeze_Train, batch_s
         # log_with="tensorboard",
         # project_dir=log_dir
     )
+    device = accelerator.device
     
     # Load_data
     print("Load_data.")
@@ -172,6 +173,7 @@ def train_main(input_dir:str, uvRex_model, tex_pretrained, Freeze_Train, batch_s
                             pin_memory=True, 
                             worker_init_fn=partial(worker_init_fn, rank=0, seed=seed),
                             drop_last=True,
+                            collate_fn=sd_collate_fn,
                             # persistent_workers=True
                             )
     test_loader=DataLoader(test_dataset, 
@@ -180,6 +182,7 @@ def train_main(input_dir:str, uvRex_model, tex_pretrained, Freeze_Train, batch_s
                             pin_memory=True, 
                             worker_init_fn=partial(worker_init_fn, rank=0, seed=seed),
                             drop_last=True,
+                            collate_fn=sd_collate_fn,
                             # persistent_workers=True
                             )
     
@@ -189,20 +192,21 @@ def train_main(input_dir:str, uvRex_model, tex_pretrained, Freeze_Train, batch_s
 
     # Load_model
     print("Load_model.")
+    uvRex_model=uvRex_get_model(args.uvrex_backbone, False, args.uvrex_model_dir, args.uvrex_Epoch, device)
 
     vae = AutoencoderKL.from_pretrained(
         MODEL_DICT["sd"], 
         subfolder="vae",
         torch_dtype=torch.float32,
         local_files_only=True
-    )
+    ).to(device)
 
     unet = UNet2DConditionModel.from_pretrained(
         MODEL_DICT["sd"], 
         subfolder="unet",
         torch_dtype=torch.float32,
         local_files_only=True
-    )
+    ).to(device)
 
     # Text_encoder
     tokenizer = CLIPTokenizer.from_pretrained(
@@ -215,39 +219,41 @@ def train_main(input_dir:str, uvRex_model, tex_pretrained, Freeze_Train, batch_s
         subfolder="text_encoder",
         torch_dtype=torch.float32,
         local_files_only=True
-    )
+    ).to(device)
 
     # Controlnet
     normal_controlnet = ControlNetModel.from_pretrained(
         MODEL_DICT["normal_controlnet"],
         torch_dtype=torch.float16,
         local_files_only=True
-    )
+    ).to(device)
 
     if tex_pretrained:
         texture_controlnet = ControlNetModel.from_pretrained(
             MODEL_DICT["texture_controlnet"],  
             torch_dtype=torch.float16,
             local_files_only=True
-        )
+        ).to(device)
 
     noise_scheduler = DDPMScheduler.from_pretrained(
-        MODEL_DICT["sd_path"], 
+        MODEL_DICT["sd"], 
         subfolder="scheduler",
         local_files_only=True
     )
 
+    uvRex_model.requires_grad_(False)
     vae.requires_grad_(False)
     unet.requires_grad_(False)
-    # tokenizer.requires_grad_(False)
     text_encoder.requires_grad_(False)
     normal_controlnet.requires_grad_(False)
 
+    uvRex_model.eval()
     vae.eval()
     unet.eval()
-    # tokenizer.eval()
     text_encoder.eval()
     normal_controlnet.eval()
+    
+    texture_controlnet.enable_gradient_checkpointing()
 
     #Optimizer
     Init_lr         = 1e-4
@@ -262,31 +268,36 @@ def train_main(input_dir:str, uvRex_model, tex_pretrained, Freeze_Train, batch_s
     weight_decay        = 1e-8
 
     lr_decay_type       = 'cosine'
-    optimizer=optim.Adam(tex_pretrained.parameters(), Init_lr_fit, betas = (momentum, 0.999), weight_decay = weight_decay)
+    optimizer=optim.Adam(texture_controlnet.parameters(), Init_lr_fit, betas = (momentum, 0.999), weight_decay = weight_decay)
 
     lr_scheduler = get_scheduler(
         lr_decay_type,
         optimizer=optimizer,
-        # num_warmup_steps=500,
+        num_warmup_steps=500,
         num_training_steps=(train_len//batch_size * (epoch_sum-Init_Epoch)) // grad_acc_steps,
     )
 
-    texture_controlnet, optimizer, train_dataloader, lr_scheduler = accelerator.prepare(
-        texture_controlnet, optimizer, train_dataloader, lr_scheduler
+    texture_controlnet, optimizer, train_loader, lr_scheduler = accelerator.prepare(
+        texture_controlnet, optimizer, train_loader, lr_scheduler
     )
-    uvRex_model = uvRex_model.to(accelerator.device)
-    vae = vae.to(accelerator.device)
-    unet = unet.to(accelerator.device)
-    normal_controlnet = normal_controlnet.to(accelerator.device)
-    text_encoder = text_encoder.to(accelerator.device)
-
 
     epoch_range = range(Init_Epoch, epoch_sum)
     epoch_pbar = tqdm(epoch_range, desc='Training_Progress', unit='epoch', position=0, leave=True)
 
     for epoch in epoch_pbar:
         if (epoch+1) % test_per_epochs==0:
-            train_loss, test_loss = sd_train_one_epoch(uvRex_model, device, train_loader, test_loader)
+            train_loss, test_loss = sd_train_one_epoch(accelerator,
+                                                       uvRex_model,
+                                                       vae, 
+                                                       noise_scheduler, 
+                                                       tokenizer, 
+                                                       text_encoder, 
+                                                       normal_controlnet, 
+                                                       texture_controlnet, 
+                                                       unet,  
+                                                       train_loader, 
+                                                       test_loader,
+                                                       )
 
             with open(loss_log_file, 'a', newline='') as f:
                 writer = csv.writer(f)
@@ -295,7 +306,17 @@ def train_main(input_dir:str, uvRex_model, tex_pretrained, Freeze_Train, batch_s
             # torch.save(model.state_dict(), f"{model_dir}/uvRex_{backbone}_epoch{epoch}.pth")
 
         else:
-            train_loss, _ = sd_train_one_epoch(uvRex_model, device, train_loader)
+            train_loss, _ = sd_train_one_epoch(accelerator,
+                                                       uvRex_model,
+                                                       vae, 
+                                                       noise_scheduler, 
+                                                       tokenizer, 
+                                                       text_encoder, 
+                                                       normal_controlnet, 
+                                                       texture_controlnet, 
+                                                       unet,  
+                                                       train_loader, 
+                                                       )
             
             with open(loss_log_file, 'a', newline='') as f:
                 writer = csv.writer(f)
@@ -307,18 +328,24 @@ if __name__ == "__main__":
 
     device= torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
-    uvRex_model=uvRex_get_model(args.uvrex_backbone, False, args.uvrex_model_dir, args.uvrex_Epoch, device)
-    uvRex_model.eval()
+    uvRex_model_dict={
+        "backbone":args.uvrex_backbone,
+        "pretrained":False, 
+        "model_dir":args.uvrex_model_dir, 
+        "Init_Epoch":args.uvrex_Epoch
+    }
+    
+    
 
     if args.mode=='train':
         train_main(args.input_dir, 
-                   uvRex_model, 
+                   uvRex_model_dict, 
                    args.tex_pretrained, 
                    args.Freeze_Train, 
                    args.batch_size, 
+                   args.grad_acc_steps,
                    args.Init_Epoch, 
                    args.epoch_sum, 
-                   device,
                    args.seed
                    )
     # else:
