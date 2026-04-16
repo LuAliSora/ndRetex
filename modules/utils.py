@@ -110,7 +110,7 @@ def uvRex_get_model(backbone, pretrained, model_dir:str, Init_Epoch, device):
     print(f'Load uvRex_weights {model_path}.')
 
     model_dict      = model.state_dict()
-    pretrained_dict = torch.load(str(model_path), map_location = device)
+    pretrained_dict = torch.load(str(model_path), map_location = device, weights_only=True)
     load_key, no_load_key, temp_dict = [], [], {}
     for k, v in pretrained_dict.items():
         if k in model_dict.keys() and np.shape(model_dict[k]) == np.shape(v):
