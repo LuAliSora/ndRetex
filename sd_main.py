@@ -282,8 +282,8 @@ def train_main(input_dir:str, uvRex_model_dict, tex_pretrained, Freeze_Train, ba
         num_training_steps=(train_len//batch_size * (epoch_sum-Init_Epoch)) // grad_acc_steps,
     )
 
-    texture_controlnet, optimizer, train_loader, lr_scheduler = accelerator.prepare(
-        texture_controlnet, optimizer, train_loader, lr_scheduler
+    texture_controlnet, optimizer, lr_scheduler, train_loader, test_loader = accelerator.prepare(
+        texture_controlnet, optimizer, lr_scheduler, train_loader, test_loader
     )
 
     epoch_range = range(Init_Epoch, epoch_sum)
