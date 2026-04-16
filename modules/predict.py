@@ -16,7 +16,7 @@ def uvRex_predict(ori_tensor, binary_mask, normal_tensor, texture_tensor, model,
             x = normal_tensor.to(device)
             y = model(x) #[B, 2, H, W]
 
-    print(f"UV_range: [{y.min():.3f}, {y.max():.3f}]")
+    # print(f"UV_range: [{y.min():.3f}, {y.max():.3f}]")
 
     uv_tensor = y.clone().cpu().float()
     B, _, H, W = uv_tensor.shape
