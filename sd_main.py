@@ -25,6 +25,7 @@ import cv2
 from modules.utils import (download_weights, seed_everything, show_config,
                          worker_init_fn, uvRex_get_model)
 from modules.dataPr import Rex_ImgSet
+from modules.train import sd_train_one_epoch
 
 
 def get_args() -> argparse.Namespace:
@@ -45,17 +46,6 @@ def get_args() -> argparse.Namespace:
         "--input_dir",
         type=str,
         default="input",
-    )
-    parser.add_argument(
-        "--model_dir",
-        type=str,
-        default="weights",
-    )
-    parser.add_argument(
-        "--backbone",
-        type=str,
-        choices=['vgg', 'resnet50'],
-        default='vgg'
     )
     parser.add_argument(
         "--pretrained",
@@ -82,6 +72,23 @@ def get_args() -> argparse.Namespace:
         type=int,
         default=1
     )
+    #uvrex_model
+    parser.add_argument(
+        "--uvrex_model_dir",
+        type=str,
+        default="weights",
+    )
+    parser.add_argument(
+        "--uvrex_backbone",
+        type=str,
+        choices=['vgg', 'resnet50'],
+        default='vgg'
+    )
+    parser.add_argument(
+        "--uvrex_Epoch",
+        type=int,
+        default=99
+    )
     #predict
     parser.add_argument(
         "--img",
@@ -97,7 +104,7 @@ def get_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def train_main(input_dir:str, model_dir:str, backbone, pretrained, Freeze_Train, batch_size, Init_Epoch, epoch_sum, device, seed): 
+def train_main(input_dir:str, uvRex_model, pretrained, Freeze_Train, batch_size, Init_Epoch, epoch_sum, device, seed): 
     if Init_Epoch<0 or Init_Epoch>epoch_sum:
         raise Exception("Require valid epoch!")
     
@@ -146,3 +153,64 @@ def train_main(input_dir:str, model_dir:str, backbone, pretrained, Freeze_Train,
                             drop_last=True,
                             # persistent_workers=True
                             )
+    
+    train_len=len(train_dataset)
+    test_len=len(test_dataset)
+    test_per_epochs=train_len // test_len *10
+
+    log_dir            = 'logs'
+    loss_log_file=f"{log_dir}/sd_loss_{Init_Epoch}.csv"
+
+    with open(loss_log_file, 'w', newline='') as f:
+        loss_writer = csv.writer(f)
+        loss_writer.writerow(['epoch', 'train_loss', 'test_loss'])
+
+    epoch_range = range(Init_Epoch, epoch_sum)
+    epoch_pbar = tqdm(epoch_range, desc='Training_Progress', unit='epoch')
+
+    for epoch in epoch_pbar:
+        if (epoch+1) % test_per_epochs==0:
+            train_loss, test_loss = sd_train_one_epoch(uvRex_model, device, train_loader, test_loader)
+
+            with open(loss_log_file, 'a', newline='') as f:
+                writer = csv.writer(f)
+                writer.writerow([epoch, f"{train_loss:.6f}", f"{test_loss:.6f}"])
+
+            # torch.save(model.state_dict(), f"{model_dir}/uvRex_{backbone}_epoch{epoch}.pth")
+
+        else:
+            train_loss, _ = sd_train_one_epoch(uvRex_model, device, train_loader)
+            
+            with open(loss_log_file, 'a', newline='') as f:
+                writer = csv.writer(f)
+                writer.writerow([epoch, f"{train_loss:.6f}", ""])
+
+
+if __name__ == "__main__":
+    args=get_args()
+
+    device= torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    
+    uvRex_model=uvRex_get_model(args.uvrex_backbone, False, args.uvrex_model_dir, args.uvrex_Epoch, device).to(device)
+    uvRex_model.eval()
+
+    if args.mode=='train':
+        train_main(args.input_dir, 
+                   uvRex_model, 
+                   args.pretrained, 
+                   args.Freeze_Train, 
+                   args.batch_size, 
+                   args.Init_Epoch, 
+                   args.epoch_sum, 
+                   device,
+                   args.seed
+                   )
+    # else:
+    #     predict_main(args.input_dir,
+    #                  args.model_dir,
+    #                  args.img, 
+    #                  args.texture, 
+    #                  args.backbone, 
+    #                  args.Init_Epoch, 
+    #                  device
+    #                  )

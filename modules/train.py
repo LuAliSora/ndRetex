@@ -2,6 +2,7 @@ import torch
 from torch.amp import autocast
 
 from modules.utils import uvRex_loss
+from modules.predict import uvRex_predict
 
 def uvRex_train_one_epoch(model, optimizer, scaler, dataAug, device, train_loader, test_loader=None):
 
@@ -39,3 +40,13 @@ def uvRex_train_one_epoch(model, optimizer, scaler, dataAug, device, train_loade
         model.train()
     # print(train_loss, test_loss)
     return train_loss, test_loss
+
+
+def sd_train_one_epoch(uvRex_model, device, train_loader, test_loader=None):
+    for i, data in enumerate(train_loader):             
+        ori, mask, normal, tex = data
+        rough=uvRex_predict(ori, mask, normal, tex, uvRex_model, device).to(device)
+        print(rough.shape)
+        
+
+                 
