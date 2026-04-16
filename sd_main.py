@@ -166,7 +166,7 @@ def train_main(input_dir:str, uvRex_model, pretrained, Freeze_Train, batch_size,
         loss_writer.writerow(['epoch', 'train_loss', 'test_loss'])
 
     epoch_range = range(Init_Epoch, epoch_sum)
-    epoch_pbar = tqdm(epoch_range, desc='Training_Progress', unit='epoch')
+    epoch_pbar = tqdm(epoch_range, desc='Training_Progress', unit='epoch', position=0, leave=True)
 
     for epoch in epoch_pbar:
         if (epoch+1) % test_per_epochs==0:
