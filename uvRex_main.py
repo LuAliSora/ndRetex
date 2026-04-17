@@ -209,13 +209,13 @@ def predict_main(input_dir:str, model_dir:str, img:str, texture:str, backbone, I
     normal_path=data_dir/f"normal/{img}"
     texture_path=data_dir/f"tex/{texture}"
 
-    ori_tensor=img2tensor_rgb(ori_path).unsqueeze(0)# [1,3,H,W]
-    texture_tensor=img2tensor_rgb(texture_path).unsqueeze(0)
+    ori_tensor=img2tensor_rgb(ori_path).unsqueeze(0).to(device)# [1,3,H,W]
+    texture_tensor=img2tensor_rgb(texture_path).unsqueeze(0).to(device)
 
     binary_mask= get_binary_mask(mask_path)
-    normal_tensor=img2tensor_rgb(normal_path, binary_mask).unsqueeze(0)
+    normal_tensor=img2tensor_rgb(normal_path, binary_mask).unsqueeze(0).to(device)
 
-    mask_tensor=torch.from_numpy(binary_mask).unsqueeze(0)# [1,H,W]
+    mask_tensor=torch.from_numpy(binary_mask).unsqueeze(0).to(device)# [1,H,W]
 
     model=uvRex_get_model(backbone, False, model_dir, Init_Epoch, device).to(device)
     model.eval()
