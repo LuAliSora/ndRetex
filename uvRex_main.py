@@ -221,13 +221,14 @@ def predict_single(input_dir:str, model_dir:str, img:str, texture:str, backbone,
     model.eval()
     
     res_tensor=uvRex_predict(ori_tensor, mask_tensor, normal_tensor, texture_tensor, model, device)
+    res_int = (res_tensor * 255.0).to(torch.uint8)
 
     #img_save
     output_dir=Path("output")
     output_dir.mkdir(exist_ok=True)
     res_path=output_dir/img
 
-    res_np = res_tensor[0].cpu().numpy().transpose(1, 2, 0)
+    res_np = res_int[0].cpu().numpy().transpose(1, 2, 0)
     res_bgr = cv2.cvtColor(res_np, cv2.COLOR_RGB2BGR)
     cv2.imwrite(str(res_path), res_bgr)
 

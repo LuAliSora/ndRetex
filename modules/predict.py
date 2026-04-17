@@ -41,11 +41,9 @@ def uvRex_predict(ori_tensor, binary_mask, normal_tensor, texture_tensor, model,
         padding_mode='border',
         align_corners=True
     )
-    retex_int = (sampled_color * 255.0).to(torch.uint8)
     
     # combine
-    ori_int = (ori_tensor[:] * 255.0).to(torch.uint8)
     mask_3ch = binary_mask.unsqueeze(1).expand(-1, 3, -1, -1)
-    results = torch.where(mask_3ch, retex_int, ori_int)#[B,3,H,W]
+    results = torch.where(mask_3ch, sampled_color, ori_tensor)#[B,3,H,W]
 
     return results
