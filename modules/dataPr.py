@@ -122,7 +122,7 @@ class SD_ImgSet(data.Dataset):
 
         mask_tensor=torch.from_numpy(binary_mask)# [H,W]
 
-        return ori_tensor.half(), mask_tensor.half(), normal_tensor.half(), tex_tensor.half(), self.prompt
+        return ori_tensor.half(), mask_tensor, normal_tensor.half(), tex_tensor.half(), self.prompt
     
     def __len__(self):
         return len(self.img_list)
