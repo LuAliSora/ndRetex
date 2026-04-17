@@ -24,32 +24,21 @@ from tqdm import tqdm
 import csv
 import cv2
 
-from diffusers import (
-    StableDiffusionControlNetImg2ImgPipeline,
-    ControlNetModel,
-    AutoencoderKL,
-    UNet2DConditionModel,
-    DDPMScheduler,
-    UniPCMultistepScheduler
-)
+
 from diffusers.optimization import get_scheduler
 from accelerate import Accelerator
-from transformers import CLIPTokenizer, CLIPTextModel
+
 
 # from accelerate import Accelerator
 # from accelerate.logging import get_logger
 # from accelerate.utils import ProjectConfiguration, set_seed
 
 from modules.utils import (download_weights, seed_everything, show_config,
-                         worker_init_fn, uvRex_get_model)
+                         worker_init_fn, sd_get_model)
 from modules.dataPr import SD_ImgSet, sd_collate_fn
 from modules.train import sd_train_one_epoch
 
-PRE_MODEL_DICT = {
-    "sd": "runwayml/stable-diffusion-v1-5",
-    "normal_controlnet": "lllyasviel/sd-controlnet-normal",
-    "texture_controlnet": "lllyasviel/sd-controlnet-canny",  # 用canny作为初始模板
-}
+
 
 
 def get_args() -> argparse.Namespace:
@@ -191,66 +180,7 @@ def train_main(input_dir:str, uvRex_model_dict, tex_pretrained, Freeze_Train, ba
     test_per_epochs=train_len // test_len *10
 
     # Load_model
-    print("Load_model.")
-    uvRex_model=uvRex_get_model(uvRex_model_dict["backbone"], 
-                                uvRex_model_dict["pretrained"], 
-                                uvRex_model_dict["model_dir"], 
-                                uvRex_model_dict["Init_Epoch"], 
-                                device
-                                ).half().to(device)
-
-    vae = AutoencoderKL.from_pretrained(
-        PRE_MODEL_DICT["sd"], 
-        subfolder="vae",
-        torch_dtype=torch.float32,
-        local_files_only=True
-    ).to(device)
-
-    unet = UNet2DConditionModel.from_pretrained(
-        PRE_MODEL_DICT["sd"], 
-        subfolder="unet",
-        torch_dtype=torch.float32,
-        local_files_only=True
-    ).to(device)
-
-    # Text_encoder
-    tokenizer = CLIPTokenizer.from_pretrained(
-        PRE_MODEL_DICT["sd"], 
-        subfolder="tokenizer",
-        local_files_only=True
-    )
-    text_encoder = CLIPTextModel.from_pretrained(
-        PRE_MODEL_DICT["sd"], 
-        subfolder="text_encoder",
-        torch_dtype=torch.float32,
-        local_files_only=True
-    ).to(device)
-
-    # Controlnet
-    normal_controlnet = ControlNetModel.from_pretrained(
-        PRE_MODEL_DICT["normal_controlnet"],
-        torch_dtype=torch.float16,
-        local_files_only=True
-    ).to(device)
-
-
-    texture_controlnet = ControlNetModel.from_pretrained(
-        PRE_MODEL_DICT["texture_controlnet"],  
-        torch_dtype=torch.float16,
-        local_files_only=True
-    )
-    if tex_pretrained==False:
-        tex_model_path=f"{uvRex_model_dict["model_dir"]}/texControl_epoch{Init_Epoch}.pth"
-        tex_state_dict=torch.load(tex_model_path, map_location = device, weights_only=True)
-        texture_controlnet.load_state_dict(tex_state_dict)
-    texture_controlnet = texture_controlnet.to(device)
-
-    noise_scheduler = DDPMScheduler.from_pretrained(
-        PRE_MODEL_DICT["sd"], 
-        subfolder="scheduler",
-        local_files_only=True
-    )
-
+    model_dict=sd_get_model(uvRex_model_dict, tex_pretrained, Init_Epoch, device)
     uvRex_model.requires_grad_(False)
     vae.requires_grad_(False)
     unet.requires_grad_(False)
@@ -264,7 +194,6 @@ def train_main(input_dir:str, uvRex_model_dict, tex_pretrained, Freeze_Train, ba
     normal_controlnet.eval()
     
     texture_controlnet.enable_gradient_checkpointing()
-
     #Optimizer
     Init_lr         = 1e-4
     Min_lr          = Init_lr * 0.01
