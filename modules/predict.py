@@ -19,7 +19,7 @@ def uvRex_predict(ori_tensor, binary_mask, normal_tensor, texture_tensor, model,
 
     # print(f"UV_range: [{y.min():.3f}, {y.max():.3f}]")
 
-    uv_tensor = y.clone().float()
+    uv_tensor = y.clone()
     B, _, H, W = uv_tensor.shape
 
     # uv_normalized
