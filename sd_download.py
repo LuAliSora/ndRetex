@@ -5,6 +5,7 @@ import os
 import multiprocessing
 os.environ['OMP_NUM_THREADS'] = str(multiprocessing.cpu_count())
 os.environ['HF_HOME'] = 'D:/BaiduNetdiskDownload/hf_cache'
+# os.environ['HF_HOME'] = '/autodl-fs/data/hf_cache'
 os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
 
 import torch
