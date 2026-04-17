@@ -1,5 +1,6 @@
 import torch
 from torch.amp import autocast
+import torch.nn.functional as F
 
 from accelerate import Accelerator
 
@@ -49,66 +50,91 @@ def sd_train_one_epoch(accelerator, uvRex_model, vae, noise_scheduler, tokenizer
     for i, data in enumerate(train_loader):
         with accelerator.accumulate(texture_controlnet):          
             ori, mask, normal, tex, prompt = data
-            rough=uvRex_predict(ori, mask, normal, tex, uvRex_model, device)
-            print(prompt)
+            with torch.no_grad():
+                rough=uvRex_predict(ori, mask, normal, tex, uvRex_model, device)
             
-            # with torch.no_grad():
-            #     # VAE编码
-            #     latents = vae.encode(rough).latent_dist.sample()
-            #     latents = latents * vae.config.scaling_factor
+            with torch.no_grad():
+                # VAE编码
+                latents = vae.encode(rough).latent_dist.sample()
+                latents = latents * vae.config.scaling_factor
                 
-            #     # 添加噪声（img2img的核心）
-            #     # 随机选择时间步
-            #     timesteps = torch.randint(
-            #         0, noise_scheduler.config.num_train_timesteps,
-            #         (latents.shape[0],), device=latents.device
-            #     ).long()
+                # 添加噪声（img2img的核心）
+                # 随机选择时间步
+                timesteps = torch.randint(
+                    0, noise_scheduler.config.num_train_timesteps,
+                    (latents.shape[0],), device=latents.device
+                ).long()
                 
-            #     # 添加噪声
-            #     noise = torch.randn_like(latents)
-            #     noisy_latents = noise_scheduler.add_noise(latents, noise, timesteps)
+                # 添加噪声
+                noise = torch.randn_like(latents)
+                noisy_latents = noise_scheduler.add_noise(latents, noise, timesteps)
 
-            #     # 2. 编码prompt
-            #     text_inputs = tokenizer(
-            #         prompt,
-            #         padding="max_length",
-            #         max_length=tokenizer.model_max_length,
-            #         truncation=True,
-            #         return_tensors="pt"
-            #     )
-            #     encoder_hidden_states = text_encoder(text_inputs.input_ids.to(accelerator.device))[0]
+                # 2. 编码prompt
+                text_inputs = tokenizer(
+                    prompt,
+                    padding="max_length",
+                    max_length=tokenizer.model_max_length,
+                    truncation=True,
+                    return_tensors="pt"
+                )
+                encoder_hidden_states = text_encoder(text_inputs.input_ids.to(accelerator.device))[0]
 
-            #     # 法线ControlNet（冻结，不计算梯度）
-            #     with torch.no_grad():
-            #         normal_down_block_res_samples, normal_mid_block_res_sample = normal_controlnet(
-            #             noisy_latents,
-            #             timesteps,
-            #             encoder_hidden_states=encoder_hidden_states,
-            #             controlnet_cond=normal,
-            #             conditioning_scale=1.0,
-            #             return_dict=False,
-            #         )
+                # 3. 两个ControlNet的前向传播
+                # 法线ControlNet（冻结，不计算梯度）
+                with torch.no_grad():
+                    normal_down_block_res_samples, normal_mid_block_res_sample = normal_controlnet(
+                        noisy_latents,
+                        timesteps,
+                        encoder_hidden_states=encoder_hidden_states,
+                        controlnet_cond=normal,
+                        conditioning_scale=1.0,
+                        return_dict=False,
+                    )
                     
-            #     # 纹理ControlNet（训练）
-            #     texture_down_block_res_samples, texture_mid_block_res_sample = texture_controlnet(
-            #         noisy_latents,
-            #         timesteps,
-            #         encoder_hidden_states=encoder_hidden_states,
-            #         controlnet_cond=tex,
-            #         conditioning_scale=1.0,
-            #         return_dict=False,
-            #     )
+                # 纹理ControlNet（训练）
+                texture_down_block_res_samples, texture_mid_block_res_sample = texture_controlnet(
+                    noisy_latents,
+                    timesteps,
+                    encoder_hidden_states=encoder_hidden_states,
+                    controlnet_cond=tex,
+                    conditioning_scale=1.0,
+                    return_dict=False,
+                )
 
-            #     mid_block_res_sample = normal_mid_block_res_sample + texture_mid_block_res_sample
-            #     # 5. UNet前向传播（预测噪声）
-            #     with torch.no_grad():
-            #         model_pred = unet(
-            #             noisy_latents,
-            #             timesteps,
-            #             encoder_hidden_states=encoder_hidden_states,
-            #             down_block_additional_residuals=down_block_res_samples,
-            #             mid_block_additional_residual=mid_block_res_sample,
-            #         ).sample
+                # 4. 合并两个ControlNet的输出
+                # 简单相加或加权融合
+                down_block_res_samples = [
+                    normal_sample + texture_sample 
+                    for normal_sample, texture_sample in zip(
+                        normal_down_block_res_samples, texture_down_block_res_samples
+                    )
+                ]
+                mid_block_res_sample = normal_mid_block_res_sample + texture_mid_block_res_sample
+                # 5. UNet前向传播（预测噪声）
+                with torch.no_grad():
+                    model_pred = unet(
+                        noisy_latents,
+                        timesteps,
+                        encoder_hidden_states=encoder_hidden_states,
+                        down_block_additional_residuals=down_block_res_samples,
+                        mid_block_additional_residual=mid_block_res_sample,
+                    ).sample
+
+                # 6. 计算损失
+                if noise_scheduler.config.prediction_type == "epsilon":
+                    target = noise
+                elif noise_scheduler.config.prediction_type == "v_prediction":
+                    target = noise_scheduler.get_velocity(latents, noise, timesteps)
+                else:
+                    raise ValueError(f"Unknown prediction type {noise_scheduler.config.prediction_type}")
+                
+                loss = F.mse_loss(model_pred.float(), target.float(), reduction="mean")
+                
+                # 7. 反向传播
+                accelerator.backward(loss)
+
+                if accelerator.sync_gradients:
+                    accelerator.clip_grad_norm_(texture_controlnet.parameters(), 1.0)
         
 
                  
