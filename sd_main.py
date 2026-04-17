@@ -217,11 +217,7 @@ def train_main(input_dir:str, uvRex_model_state, tex_pretrained, Freeze_Train, b
 
     for epoch in epoch_pbar:
         if (epoch+1) % test_per_epochs==0:
-            train_loss, test_loss = sd_train_one_epoch(accelerator,
-                                                       model_dict,  
-                                                       train_loader, 
-                                                       test_loader,
-                                                       )
+            train_loss, test_loss = sd_train_one_epoch(accelerator, model_dict, optimizer, lr_scheduler, train_loader, test_loader)
 
             with open(loss_log_file, 'a', newline='') as f:
                 writer = csv.writer(f)
@@ -230,17 +226,7 @@ def train_main(input_dir:str, uvRex_model_state, tex_pretrained, Freeze_Train, b
             torch.save(texture_controlnet.state_dict(), f"{uvRex_model_state["model_dir"]}/texControl_epoch{epoch}.pth")
 
         else:
-            train_loss, _ = sd_train_one_epoch(accelerator,
-                                                       uvRex_model,
-                                                       vae, 
-                                                       noise_scheduler, 
-                                                       tokenizer, 
-                                                       text_encoder, 
-                                                       normal_controlnet, 
-                                                       texture_controlnet, 
-                                                       unet,  
-                                                       train_loader, 
-                                                       )
+            train_loss, _ = sd_train_one_epoch(accelerator, model_dict, optimizer, lr_scheduler, train_loader)
             
             with open(loss_log_file, 'a', newline='') as f:
                 writer = csv.writer(f)

@@ -29,7 +29,7 @@ def uvRex_train_one_epoch(model, optimizer, scaler, dataAug, device, train_loade
         train_loss += loss.item()
 
     test_loss = 0.0
-    if test_loader!=None:
+    if test_loader is not None:
         model.eval()
         with torch.no_grad():  # 禁用梯度计算，节省内存和计算
             for i, data in enumerate(test_loader):
@@ -45,18 +45,18 @@ def uvRex_train_one_epoch(model, optimizer, scaler, dataAug, device, train_loade
     return train_loss, test_loss
 
 
-def sd_train_one_epoch(accelerator, 
-                       uvRex_model, 
-                       vae, 
-                       noise_scheduler, 
-                       tokenizer, 
-                       text_encoder, 
-                       normal_controlnet, 
-                       texture_controlnet, 
-                       unet, 
-                       train_loader, 
-                       test_loader=None):
+def sd_train_one_epoch(accelerator, model_dict, optimizer, lr_scheduler, train_loader, test_loader=None):
     device = accelerator.device
+
+    uvRex_model = model_dict["uvRex_model"]
+    vae = model_dict["vae"]
+    unet = model_dict["unet"]
+    tokenizer = model_dict["tokenizer"]
+    text_encoder = model_dict["text_encoder"]
+    normal_controlnet = model_dict["normal_controlnet"]
+    texture_controlnet = model_dict["texture_controlnet"]
+    noise_scheduler = model_dict["noise_scheduler"]
+
     for i, data in enumerate(train_loader):
         with accelerator.accumulate(texture_controlnet):          
             ori, mask, normal, tex, prompt = data
