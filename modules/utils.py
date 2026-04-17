@@ -128,7 +128,7 @@ def uvRex_get_model(backbone, pretrained, model_dir:str, Init_Epoch, device):
     return model
 
 
-def sd_get_model(uvRex_model_dict, tex_pretrained, Init_Epoch, device)->dict:
+def sd_get_model(uvRex_model_state, tex_pretrained, Init_Epoch, device)->dict:
     from diffusers import (
         StableDiffusionControlNetImg2ImgPipeline,
         ControlNetModel,
@@ -145,10 +145,10 @@ def sd_get_model(uvRex_model_dict, tex_pretrained, Init_Epoch, device)->dict:
     
     print("Load_model.")
     model_dict={}
-    model_dict["uvRex_model"]=uvRex_get_model(uvRex_model_dict["backbone"], 
-                                uvRex_model_dict["pretrained"], 
-                                uvRex_model_dict["model_dir"], 
-                                uvRex_model_dict["Init_Epoch"], 
+    model_dict["uvRex_model"]=uvRex_get_model(uvRex_model_state["backbone"], 
+                                uvRex_model_state["pretrained"], 
+                                uvRex_model_state["model_dir"], 
+                                uvRex_model_state["Init_Epoch"], 
                                 device
                                 ).half().to(device)
 
@@ -193,7 +193,7 @@ def sd_get_model(uvRex_model_dict, tex_pretrained, Init_Epoch, device)->dict:
         local_files_only=True
     )
     if tex_pretrained==False:
-        tex_model_path=f'{uvRex_model_dict["model_dir"]}/texControl_epoch{Init_Epoch}.pth'
+        tex_model_path=f'{uvRex_model_state["model_dir"]}/texControl_epoch{Init_Epoch}.pth'
         tex_state_dict=torch.load(tex_model_path, map_location = device, weights_only=True)
         texture_controlnet.load_state_dict(tex_state_dict)
     model_dict["texture_controlnet"] = texture_controlnet.to(device)
@@ -203,6 +203,13 @@ def sd_get_model(uvRex_model_dict, tex_pretrained, Init_Epoch, device)->dict:
         subfolder="scheduler",
         local_files_only=True
     )
+
+    for model_name, model in model_dict.items():
+    # 检查是否是 PyTorch 模型
+        if hasattr(model, 'parameters'):
+            model.requires_grad_(False)
+            model.eval()
+
     return model_dict
 #---------------------------------------------------#
 # loss_fn

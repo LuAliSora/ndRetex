@@ -123,7 +123,7 @@ def get_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def train_main(input_dir:str, uvRex_model_dict, tex_pretrained, Freeze_Train, batch_size, grad_acc_steps, Init_Epoch, epoch_sum, seed): 
+def train_main(input_dir:str, uvRex_model_state, tex_pretrained, Freeze_Train, batch_size, grad_acc_steps, Init_Epoch, epoch_sum, seed): 
     if Init_Epoch<0 or Init_Epoch>epoch_sum:
         raise Exception("Require valid epoch!")
     
@@ -180,20 +180,12 @@ def train_main(input_dir:str, uvRex_model_dict, tex_pretrained, Freeze_Train, ba
     test_per_epochs=train_len // test_len *10
 
     # Load_model
-    model_dict=sd_get_model(uvRex_model_dict, tex_pretrained, Init_Epoch, device)
-    uvRex_model.requires_grad_(False)
-    vae.requires_grad_(False)
-    unet.requires_grad_(False)
-    text_encoder.requires_grad_(False)
-    normal_controlnet.requires_grad_(False)
-
-    uvRex_model.eval()
-    vae.eval()
-    unet.eval()
-    text_encoder.eval()
-    normal_controlnet.eval()
-    
+    model_dict=sd_get_model(uvRex_model_state, tex_pretrained, Init_Epoch, device)
+    texture_controlnet=model_dict["texture_controlnet"]
+    texture_controlnet.requires_grad_(True)
+    texture_controlnet.train()
     texture_controlnet.enable_gradient_checkpointing()
+
     #Optimizer
     Init_lr         = 1e-4
     Min_lr          = Init_lr * 0.01
@@ -226,14 +218,7 @@ def train_main(input_dir:str, uvRex_model_dict, tex_pretrained, Freeze_Train, ba
     for epoch in epoch_pbar:
         if (epoch+1) % test_per_epochs==0:
             train_loss, test_loss = sd_train_one_epoch(accelerator,
-                                                       uvRex_model,
-                                                       vae, 
-                                                       noise_scheduler, 
-                                                       tokenizer, 
-                                                       text_encoder, 
-                                                       normal_controlnet, 
-                                                       texture_controlnet, 
-                                                       unet,  
+                                                       model_dict,  
                                                        train_loader, 
                                                        test_loader,
                                                        )
@@ -242,7 +227,7 @@ def train_main(input_dir:str, uvRex_model_dict, tex_pretrained, Freeze_Train, ba
                 writer = csv.writer(f)
                 writer.writerow([epoch, f"{train_loss:.6f}", f"{test_loss:.6f}"])
 
-            torch.save(texture_controlnet.state_dict(), f"{uvRex_model_dict["model_dir"]}/texControl_epoch{epoch}.pth")
+            torch.save(texture_controlnet.state_dict(), f"{uvRex_model_state["model_dir"]}/texControl_epoch{epoch}.pth")
 
         else:
             train_loss, _ = sd_train_one_epoch(accelerator,
@@ -267,7 +252,7 @@ if __name__ == "__main__":
 
     device= torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
-    uvRex_model_dict={
+    uvRex_model_state={
         "backbone":args.uvrex_backbone,
         "pretrained":False, 
         "model_dir":args.uvrex_model_dir, 
@@ -276,7 +261,7 @@ if __name__ == "__main__":
     
     if args.mode=='train':
         train_main(args.input_dir, 
-                   uvRex_model_dict, 
+                   uvRex_model_state, 
                    args.tex_pretrained, 
                    args.Freeze_Train, 
                    args.batch_size, 
