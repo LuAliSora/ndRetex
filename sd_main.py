@@ -45,7 +45,7 @@ from modules.utils import (download_weights, seed_everything, show_config,
 from modules.dataPr import SD_ImgSet, sd_collate_fn
 from modules.train import sd_train_one_epoch
 
-MODEL_DICT = {
+PRE_MODEL_DICT = {
     "sd": "runwayml/stable-diffusion-v1-5",
     "normal_controlnet": "lllyasviel/sd-controlnet-normal",
     "texture_controlnet": "lllyasviel/sd-controlnet-canny",  # 用canny作为初始模板
@@ -200,14 +200,14 @@ def train_main(input_dir:str, uvRex_model_dict, tex_pretrained, Freeze_Train, ba
                                 ).half().to(device)
 
     vae = AutoencoderKL.from_pretrained(
-        MODEL_DICT["sd"], 
+        PRE_MODEL_DICT["sd"], 
         subfolder="vae",
         torch_dtype=torch.float32,
         local_files_only=True
     ).to(device)
 
     unet = UNet2DConditionModel.from_pretrained(
-        MODEL_DICT["sd"], 
+        PRE_MODEL_DICT["sd"], 
         subfolder="unet",
         torch_dtype=torch.float32,
         local_files_only=True
@@ -215,12 +215,12 @@ def train_main(input_dir:str, uvRex_model_dict, tex_pretrained, Freeze_Train, ba
 
     # Text_encoder
     tokenizer = CLIPTokenizer.from_pretrained(
-        MODEL_DICT["sd"], 
+        PRE_MODEL_DICT["sd"], 
         subfolder="tokenizer",
         local_files_only=True
     )
     text_encoder = CLIPTextModel.from_pretrained(
-        MODEL_DICT["sd"], 
+        PRE_MODEL_DICT["sd"], 
         subfolder="text_encoder",
         torch_dtype=torch.float32,
         local_files_only=True
@@ -228,20 +228,25 @@ def train_main(input_dir:str, uvRex_model_dict, tex_pretrained, Freeze_Train, ba
 
     # Controlnet
     normal_controlnet = ControlNetModel.from_pretrained(
-        MODEL_DICT["normal_controlnet"],
+        PRE_MODEL_DICT["normal_controlnet"],
         torch_dtype=torch.float16,
         local_files_only=True
     ).to(device)
 
-    if tex_pretrained:
-        texture_controlnet = ControlNetModel.from_pretrained(
-            MODEL_DICT["texture_controlnet"],  
-            torch_dtype=torch.float16,
-            local_files_only=True
-        ).to(device)
+
+    texture_controlnet = ControlNetModel.from_pretrained(
+        PRE_MODEL_DICT["texture_controlnet"],  
+        torch_dtype=torch.float16,
+        local_files_only=True
+    )
+    if tex_pretrained==False:
+        tex_model_path=f"{uvRex_model_dict["model_dir"]}/texControl_epoch{Init_Epoch}.pth"
+        tex_state_dict=torch.load(tex_model_path, map_location = device, weights_only=True)
+        texture_controlnet.load_state_dict(tex_state_dict)
+    texture_controlnet = texture_controlnet.to(device)
 
     noise_scheduler = DDPMScheduler.from_pretrained(
-        MODEL_DICT["sd"], 
+        PRE_MODEL_DICT["sd"], 
         subfolder="scheduler",
         local_files_only=True
     )
@@ -308,7 +313,7 @@ def train_main(input_dir:str, uvRex_model_dict, tex_pretrained, Freeze_Train, ba
                 writer = csv.writer(f)
                 writer.writerow([epoch, f"{train_loss:.6f}", f"{test_loss:.6f}"])
 
-            # torch.save(model.state_dict(), f"{model_dir}/uvRex_{backbone}_epoch{epoch}.pth")
+            torch.save(texture_controlnet.state_dict(), f"{uvRex_model_dict["model_dir"]}/texControl_epoch{epoch}.pth")
 
         else:
             train_loss, _ = sd_train_one_epoch(accelerator,
