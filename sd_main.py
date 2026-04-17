@@ -92,20 +92,20 @@ def get_args() -> argparse.Namespace:
         default=2,
         help="gradient_accumulation_steps"
     )
-    #uvrex_model
+    #uvRex_model
     parser.add_argument(
-        "--uvrex_model_dir",
+        "--uvRex_model_dir",
         type=str,
         default="weights",
     )
     parser.add_argument(
-        "--uvrex_backbone",
+        "--uvRex_backbone",
         type=str,
         choices=['vgg', 'resnet50'],
         default='vgg'
     )
     parser.add_argument(
-        "--uvrex_Epoch",
+        "--uvRex_Epoch",
         type=int,
         default=99
     )
@@ -240,10 +240,10 @@ if __name__ == "__main__":
     device= torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
     uvRex_model_state={
-        "backbone":args.uvrex_backbone,
+        "backbone":args.uvRex_backbone,
         "pretrained":False, 
-        "model_dir":args.uvrex_model_dir, 
-        "Init_Epoch":args.uvrex_Epoch
+        "model_dir":args.uvRex_model_dir, 
+        "Init_Epoch":args.uvRex_Epoch
     }
     
     if args.mode=='train':
