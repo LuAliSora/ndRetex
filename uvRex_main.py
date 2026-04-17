@@ -202,7 +202,7 @@ def train_main(input_dir:str, model_dir:str, backbone, pretrained, Freeze_Train,
                 writer.writerow([epoch, f"{train_loss:.6f}", ""])
 
 
-def predict_main(input_dir:str, model_dir:str, img:str, texture:str, backbone, Init_Epoch, device):
+def predict_single(input_dir:str, model_dir:str, img:str, texture:str, backbone, Init_Epoch, device):
     data_dir=Path(input_dir)
     ori_path=data_dir/f"cloth/{img}"
     mask_path=data_dir/f"mask/{img}"
@@ -249,7 +249,7 @@ if __name__ == "__main__":
                    args.seed
                    )
     else:
-        predict_main(args.input_dir,
+        predict_single(args.input_dir,
                      args.model_dir,
                      args.img, 
                      args.texture, 
