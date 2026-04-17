@@ -42,7 +42,7 @@ from transformers import CLIPTokenizer, CLIPTextModel
 
 from modules.utils import (download_weights, seed_everything, show_config,
                          worker_init_fn, uvRex_get_model)
-from modules.dataPr import Rex_ImgSet, sd_collate_fn
+from modules.dataPr import SD_ImgSet, sd_collate_fn
 from modules.train import sd_train_one_epoch
 
 MODEL_DICT = {
@@ -163,8 +163,8 @@ def train_main(input_dir:str, uvRex_model_dict, tex_pretrained, Freeze_Train, ba
     train_dir=data_dir/"train"
     test_dir=data_dir/"test"
 
-    train_dataset   = Rex_ImgSet(str(train_dir))
-    test_dataset    = Rex_ImgSet(str(test_dir))
+    train_dataset   = SD_ImgSet(str(train_dir))
+    test_dataset    = SD_ImgSet(str(test_dir))
 
     train_loader=DataLoader(train_dataset, 
                             batch_size, 

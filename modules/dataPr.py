@@ -88,7 +88,7 @@ class Masked_ImgSet(data.Dataset):
         return len(self.img_list)
     
 
-class Rex_ImgSet(data.Dataset):
+class SD_ImgSet(data.Dataset):
 
     def __init__(self, data_dir:str):
         img_dir=Path(data_dir)
