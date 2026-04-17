@@ -45,7 +45,17 @@ def uvRex_train_one_epoch(model, optimizer, scaler, dataAug, device, train_loade
     return train_loss, test_loss
 
 
-def sd_train_one_epoch(accelerator, uvRex_model, vae, noise_scheduler, tokenizer, text_encoder, normal_controlnet, texture_controlnet, unet, train_loader, test_loader=None):
+def sd_train_one_epoch(accelerator, 
+                       uvRex_model, 
+                       vae, 
+                       noise_scheduler, 
+                       tokenizer, 
+                       text_encoder, 
+                       normal_controlnet, 
+                       texture_controlnet, 
+                       unet, 
+                       train_loader, 
+                       test_loader=None):
     device = accelerator.device
     for i, data in enumerate(train_loader):
         with accelerator.accumulate(texture_controlnet):          
@@ -128,6 +138,8 @@ def sd_train_one_epoch(accelerator, uvRex_model, vae, noise_scheduler, tokenizer
                 else:
                     raise ValueError(f"Unknown prediction type {noise_scheduler.config.prediction_type}")
                 
+                optimizer.zero_grad()
+                
                 loss = F.mse_loss(model_pred.float(), target.float(), reduction="mean")
                 
                 # 7. 反向传播
@@ -135,6 +147,10 @@ def sd_train_one_epoch(accelerator, uvRex_model, vae, noise_scheduler, tokenizer
 
                 if accelerator.sync_gradients:
                     accelerator.clip_grad_norm_(texture_controlnet.parameters(), 1.0)
+
+                optimizer.step()
+                lr_scheduler.step()
+
         
 
                  
