@@ -140,7 +140,7 @@ def train_main(input_dir:str, uvRex_model_state, tex_pretrained, Freeze_Train, b
 
     accelerator = Accelerator(
         gradient_accumulation_steps=grad_acc_steps,
-        # mixed_precision="fp16",
+        mixed_precision="fp16",
         # log_with="tensorboard",
         # project_dir=log_dir
     )
