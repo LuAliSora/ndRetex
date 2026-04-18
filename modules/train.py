@@ -73,8 +73,9 @@ def sd_cal_loss(data, model_dict, device, eval_flag=False):
     ).long()
     
     # 添加噪声
-    noise = torch.randn_like(latents)
-    noisy_latents = noise_scheduler.add_noise(latents, noise, timesteps)
+    with torch.no_grad():
+        noise = torch.randn_like(latents)
+        noisy_latents = noise_scheduler.add_noise(latents, noise, timesteps)
 
     # 2. 编码prompt
     text_inputs = tokenizer(
@@ -99,37 +100,7 @@ def sd_cal_loss(data, model_dict, device, eval_flag=False):
             return_dict=False,
         )
 
-    if eval_flag:
-        texture_controlnet.eval()
-        with torch.no_grad():
-            # 纹理ControlNet
-            texture_down_block_res_samples, texture_mid_block_res_sample = texture_controlnet(
-                noisy_latents,
-                timesteps,
-                encoder_hidden_states=encoder_hidden_states,
-                controlnet_cond=tex,
-                conditioning_scale=1.0,
-                return_dict=False,
-            )
-
-            # 4. 合并两个ControlNet的输出
-            # 简单相加或加权融合
-            down_block_res_samples = [
-                normal_sample + texture_sample 
-                for normal_sample, texture_sample in zip(
-                    normal_down_block_res_samples, texture_down_block_res_samples
-                )
-            ]
-            mid_block_res_sample = normal_mid_block_res_sample + texture_mid_block_res_sample
-            # 5. UNet前向传播（预测噪声）
-            model_pred = unet(
-                noisy_latents,
-                timesteps,
-                encoder_hidden_states=encoder_hidden_states,
-                down_block_additional_residuals=down_block_res_samples,
-                mid_block_additional_residual=mid_block_res_sample,
-            ).sample
-    else:
+    with torch.no_grad() if eval_flag else torch.enable_grad():
         # 纹理ControlNet
         texture_down_block_res_samples, texture_mid_block_res_sample = texture_controlnet(
             noisy_latents,
@@ -172,7 +143,6 @@ def sd_train_one_epoch(accelerator, model_dict, optimizer, lr_scheduler, train_l
     device = accelerator.device
     texture_controlnet = model_dict["texture_controlnet"]
 
-
     train_loss = 0.0
     for i, data in enumerate(train_loader):
         with accelerator.accumulate(texture_controlnet):          
@@ -192,7 +162,8 @@ def sd_train_one_epoch(accelerator, model_dict, optimizer, lr_scheduler, train_l
     test_loss = 0.0
     if test_loader is not None:
         for i, data in enumerate(test_loader):
-            loss=sd_cal_loss(data, model_dict, device)
+            texture_controlnet.eval()
+            loss=sd_cal_loss(data, model_dict, device, True)
             test_loss += loss.item()
 
     return train_loss, test_loss
