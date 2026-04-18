@@ -13,14 +13,16 @@ import cv2
 import kornia.augmentation as K
 
 
-def img2np_rgb(img_path:str):
+def img2np_rgb(img_path:str, imgResize=None):
     img_np = cv2.imread(img_path)
     img_rgb = cv2.cvtColor(img_np, cv2.COLOR_BGR2RGB)
+    if imgResize is not None:
+        img_rgb = cv2.resize(img_rgb, imgResize, interpolation=cv2.INTER_LINEAR)
     return img_rgb
 
 
-def img2tensor_rgb(img_path:str, binary_mask=None, fp16_flag=False):
-    img_np = img2np_rgb(img_path).astype(np.float32)/ 255.0
+def img2tensor_rgb(img_path:str, imgResize=None, binary_mask=None, fp16_flag=False):
+    img_np = img2np_rgb(img_path, imgResize).astype(np.float32)/ 255.0
     if binary_mask is not None:
         img_np =img_masked(img_np, binary_mask)
     img_tensor = torch.from_numpy(img_np).permute(2, 0, 1).contiguous()# [3,H,W]
@@ -30,8 +32,10 @@ def img2tensor_rgb(img_path:str, binary_mask=None, fp16_flag=False):
     return img_tensor
 
 
-def get_binary_mask(mask_path:str):
+def get_binary_mask(mask_path:str, imgResize=None):
     mask_np = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
+    if imgResize is not None:
+        mask_np = cv2.resize(mask_np, imgResize, interpolation=cv2.INTER_LINEAR)
     binary_mask = (mask_np > 127)# [H,W]
     return  binary_mask
 
@@ -92,7 +96,7 @@ class Masked_ImgSet(data.Dataset):
 
 class SD_ImgSet(data.Dataset):
 
-    def __init__(self, data_dir:str, fp16_flag=False):
+    def __init__(self, data_dir:str, imgResize=(512,512), fp16_flag=False):
         img_dir=Path(data_dir)
         self.ori_dir=img_dir/"cloth"
         self.mask_dir=img_dir/"mask"
@@ -106,6 +110,7 @@ class SD_ImgSet(data.Dataset):
 
         self.prompt="clothes_prompt"
 
+        self.imgResize=imgResize
         self.fp16_flag=fp16_flag
 
     @torch.no_grad()
@@ -118,11 +123,11 @@ class SD_ImgSet(data.Dataset):
         normal_path=self.normal_dir/img_name
         tex_path=self.tex_dir/tex_name
 
-        ori_tensor=img2tensor_rgb(ori_path, None, self.fp16_flag)# [3,H,W]
-        tex_tensor=img2tensor_rgb(tex_path, None, self.fp16_flag)# [3,H,W]
+        ori_tensor=img2tensor_rgb(ori_path, self.imgResize, None, self.fp16_flag)# [3,H,W]
+        tex_tensor=img2tensor_rgb(tex_path, self.imgResize, None, self.fp16_flag)# [3,H,W]
 
-        binary_mask = get_binary_mask(mask_path)
-        normal_tensor=img2tensor_rgb(normal_path, binary_mask, self.fp16_flag)# [3,H,W]
+        binary_mask = get_binary_mask(mask_path, self.imgResize)
+        normal_tensor=img2tensor_rgb(normal_path, self.imgResize, binary_mask, self.fp16_flag)# [3,H,W]
 
         mask_tensor=torch.from_numpy(binary_mask)# [H,W]
 

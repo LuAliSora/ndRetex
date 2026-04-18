@@ -153,8 +153,10 @@ def train_main(input_dir:str, uvRex_model_state, tex_pretrained, Freeze_Train, b
     train_dir=data_dir/"train"
     test_dir=data_dir/"test"
 
-    train_dataset   = SD_ImgSet(str(train_dir), True)
-    test_dataset    = SD_ImgSet(str(test_dir), True)
+    imgResize=(512,512)
+
+    train_dataset   = SD_ImgSet(str(train_dir), imgResize, True)
+    test_dataset    = SD_ImgSet(str(test_dir), imgResize, True)
 
     train_loader=DataLoader(train_dataset, 
                             batch_size, 
