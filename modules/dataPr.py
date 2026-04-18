@@ -19,12 +19,14 @@ def img2np_rgb(img_path:str):
     return img_rgb
 
 
-def img2tensor_rgb(img_path:str, binary_mask=None):
+def img2tensor_rgb(img_path:str, binary_mask=None, fp16_flag=False):
     img_np = img2np_rgb(img_path).astype(np.float32)/ 255.0
     if binary_mask is not None:
         img_np =img_masked(img_np, binary_mask)
     img_tensor = torch.from_numpy(img_np).permute(2, 0, 1).contiguous()# [3,H,W]
     # img_tensor = img_tensor.unsqueeze(0) #[1, 3, H, W]
+    if fp16_flag:
+        img_tensor=img_tensor.half()
     return img_tensor
 
 
@@ -73,8 +75,8 @@ class Masked_ImgSet(data.Dataset):
         img_path=self.img_dir/img_name
         mask_path=self.mask_dir/img_name
 
-        binary_mask = get_binary_mask(str(mask_path))
-        res_tensor=img2tensor_rgb(str(img_path),binary_mask)# [3,H,W]
+        binary_mask = get_binary_mask(mask_path)
+        res_tensor=img2tensor_rgb(img_path, binary_mask)# [3,H,W]
 
         # transfm=get_dataAug()
         # res_tensor = res_tensor.unsqueeze(0)  # (1, C, H, W)
@@ -90,7 +92,7 @@ class Masked_ImgSet(data.Dataset):
 
 class SD_ImgSet(data.Dataset):
 
-    def __init__(self, data_dir:str):
+    def __init__(self, data_dir:str, fp16_flag=False):
         img_dir=Path(data_dir)
         self.ori_dir=img_dir/"cloth"
         self.mask_dir=img_dir/"mask"
@@ -104,6 +106,8 @@ class SD_ImgSet(data.Dataset):
 
         self.prompt="clothes_prompt"
 
+        self.fp16_flag=fp16_flag
+
     @torch.no_grad()
     def __getitem__(self, index):
         img_name=self.img_list[index]
@@ -114,15 +118,15 @@ class SD_ImgSet(data.Dataset):
         normal_path=self.normal_dir/img_name
         tex_path=self.tex_dir/tex_name
 
-        ori_tensor=img2tensor_rgb(ori_path)# [3,H,W]
-        tex_tensor=img2tensor_rgb(tex_path)# [3,H,W]
+        ori_tensor=img2tensor_rgb(ori_path, None, self.fp16_flag)# [3,H,W]
+        tex_tensor=img2tensor_rgb(tex_path, None, self.fp16_flag)# [3,H,W]
 
-        binary_mask = get_binary_mask(str(mask_path))
-        normal_tensor=img2tensor_rgb(str(normal_path),binary_mask)# [3,H,W]
+        binary_mask = get_binary_mask(mask_path)
+        normal_tensor=img2tensor_rgb(normal_path, binary_mask, self.fp16_flag)# [3,H,W]
 
         mask_tensor=torch.from_numpy(binary_mask)# [H,W]
 
-        return ori_tensor.half(), mask_tensor, normal_tensor.half(), tex_tensor.half(), self.prompt
+        return ori_tensor, mask_tensor, normal_tensor, tex_tensor, self.prompt
     
     def __len__(self):
         return len(self.img_list)
