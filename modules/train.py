@@ -121,14 +121,13 @@ def sd_train_one_epoch(accelerator, model_dict, optimizer, lr_scheduler, train_l
                 ]
                 mid_block_res_sample = normal_mid_block_res_sample + texture_mid_block_res_sample
                 # 5. UNet前向传播（预测噪声）
-                with torch.no_grad():
-                    model_pred = unet(
-                        noisy_latents,
-                        timesteps,
-                        encoder_hidden_states=encoder_hidden_states,
-                        down_block_additional_residuals=down_block_res_samples,
-                        mid_block_additional_residual=mid_block_res_sample,
-                    ).sample
+                model_pred = unet(
+                    noisy_latents,
+                    timesteps,
+                    encoder_hidden_states=encoder_hidden_states,
+                    down_block_additional_residuals=down_block_res_samples,
+                    mid_block_additional_residual=mid_block_res_sample,
+                ).sample
 
                 # 6. 计算损失
                 if noise_scheduler.config.prediction_type == "epsilon":
@@ -140,7 +139,7 @@ def sd_train_one_epoch(accelerator, model_dict, optimizer, lr_scheduler, train_l
                 
                 optimizer.zero_grad()
                 
-                loss = F.mse_loss(model_pred.float(), target.float(), reduction="mean")
+                loss = F.mse_loss(model_pred, target, reduction="mean")
                 
                 # 7. 反向传播
                 accelerator.backward(loss)
