@@ -150,19 +150,19 @@ def sd_get_model(uvRex_model_state, tex_pretrained, Init_Epoch, device)->dict:
                                 uvRex_model_state["model_dir"], 
                                 uvRex_model_state["Init_Epoch"], 
                                 device
-                                ).half().to(device)
+                                ).to(device)
 
     model_dict["vae"] = AutoencoderKL.from_pretrained(
         pre_sd, 
         subfolder="vae",
-        torch_dtype=torch.float16,
+        # torch_dtype=torch.float16,
         local_files_only=True
     ).to(device)
 
     model_dict["unet"] = UNet2DConditionModel.from_pretrained(
         pre_sd, 
         subfolder="unet",
-        torch_dtype=torch.float16,
+        # torch_dtype=torch.float16,
         local_files_only=True
     ).to(device)
 
@@ -175,21 +175,21 @@ def sd_get_model(uvRex_model_state, tex_pretrained, Init_Epoch, device)->dict:
     model_dict["text_encoder"] = CLIPTextModel.from_pretrained(
         pre_sd, 
         subfolder="text_encoder",
-        torch_dtype=torch.float16,
+        # torch_dtype=torch.float16,
         local_files_only=True
     ).to(device)
 
     # Controlnet
     model_dict["normal_controlnet"] = ControlNetModel.from_pretrained(
         pre_normal,
-        torch_dtype=torch.float16,
+        # torch_dtype=torch.float16,
         local_files_only=True
     ).to(device)
 
 
     texture_controlnet = ControlNetModel.from_pretrained(
         pre_canny,  
-        torch_dtype=torch.float16,
+        # torch_dtype=torch.float16,
         local_files_only=True
     )
     if tex_pretrained==False:

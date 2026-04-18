@@ -17,7 +17,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("正在下载 Stable Diffusion v1-5...")
 pipe = StableDiffusionPipeline.from_pretrained(
     "runwayml/stable-diffusion-v1-5",
-    torch_dtype=torch.float16,
+    # torch_dtype=torch.float16,
     # local_files_only=True
 ).to(device)
 print("✅ Stable Diffusion v1-5 下载完成！")
@@ -26,14 +26,14 @@ print("✅ Stable Diffusion v1-5 下载完成！")
 print("正在下载法线 ControlNet...")
 normal_controlnet = ControlNetModel.from_pretrained(
     "lllyasviel/sd-controlnet-normal",
-    torch_dtype=torch.float16,
+    # torch_dtype=torch.float16,
     # local_files_only=True
 ).to(device)
 print("✅ 法线 ControlNet 下载完成！")
 
 texture_controlnet = ControlNetModel.from_pretrained(
     "lllyasviel/sd-controlnet-canny",  # 用任意一个 ControlNet 作为结构模板
-    torch_dtype=torch.float16,
+    # torch_dtype=torch.float16,
     # local_files_only=True
 )
 print("✅ canny ControlNet 下载完成！")

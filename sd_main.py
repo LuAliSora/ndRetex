@@ -140,7 +140,7 @@ def train_main(input_dir:str, uvRex_model_state, tex_pretrained, Freeze_Train, b
 
     accelerator = Accelerator(
         gradient_accumulation_steps=grad_acc_steps,
-        mixed_precision="fp16",
+        # mixed_precision="fp16",
         # log_with="tensorboard",
         # project_dir=log_dir
     )
@@ -153,10 +153,10 @@ def train_main(input_dir:str, uvRex_model_state, tex_pretrained, Freeze_Train, b
     train_dir=data_dir/"train"
     test_dir=data_dir/"test"
 
-    imgResize=(512,512)
+    # imgResize=(512,512)
 
-    train_dataset   = SD_ImgSet(str(train_dir), imgResize, True)
-    test_dataset    = SD_ImgSet(str(test_dir), imgResize, True)
+    train_dataset   = SD_ImgSet(str(train_dir))
+    test_dataset    = SD_ImgSet(str(test_dir))
 
     train_loader=DataLoader(train_dataset, 
                             batch_size, 
