@@ -118,8 +118,8 @@ def train_main(input_dir:str, model_dir:str, backbone, pretrained, Freeze_Train,
     train_dataset   = Masked_ImgSet(str(train_dir/img_folder), str(train_dir/mask_folder))
     test_dataset    = Masked_ImgSet(str(test_dir/img_folder), str(test_dir/mask_folder))
 
-    trans_size=[512, 512]  
-    dataAug=get_dataAug(trans_size)
+    # trans_size=[512, 512]  
+    dataAug=get_dataAug()
     # dataAug.to(device)
 
     train_loader=DataLoader(train_dataset, 

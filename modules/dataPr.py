@@ -46,9 +46,9 @@ def img_masked(ori_np, binary_mask):
     return res
 
 
-def get_dataAug(trans_size_2D=[512, 512]):
+def get_dataAug():
     transfm = K.AugmentationSequential(
-        K.Resize(size=trans_size_2D),
+        # K.Resize(size=trans_size_2D),
         K.RandomHorizontalFlip(p=0.5),
         K.RandomVerticalFlip(p=0.3),
         K.RandomRotation(degrees=30, p=0.5),
@@ -62,14 +62,13 @@ def get_dataAug(trans_size_2D=[512, 512]):
 
 class Masked_ImgSet(data.Dataset):
 
-    def __init__(self, data_dir:str, mask_dir:str):
+    def __init__(self, data_dir:str, mask_dir:str, imgResize=(512,512)):
         self.img_dir=Path(data_dir)
         self.mask_dir=Path(mask_dir)
         
         self.img_list = sorted([str(img.name) for img in (self.img_dir).glob('*.jpg')])
         # print(self.imgList)
-
-        # trans_size=[512, 512]
+        self.imgResize=imgResize
         # self.transfm=get_dataAug(trans_size)
 
     @torch.no_grad()
@@ -79,8 +78,8 @@ class Masked_ImgSet(data.Dataset):
         img_path=self.img_dir/img_name
         mask_path=self.mask_dir/img_name
 
-        binary_mask = get_binary_mask(mask_path)
-        res_tensor=img2tensor_rgb(img_path, binary_mask)# [3,H,W]
+        binary_mask = get_binary_mask(mask_path, self.imgResize)
+        res_tensor=img2tensor_rgb(img_path, self.imgResize, binary_mask)# [3,H,W]
 
         # transfm=get_dataAug()
         # res_tensor = res_tensor.unsqueeze(0)  # (1, C, H, W)
