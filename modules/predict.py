@@ -33,6 +33,9 @@ def uvRex_predict(ori_tensor, binary_mask, normal_tensor, texture_tensor, model,
     uv_norm = (uv_tensor - uv_min) / (uv_range) * 2 - 1
     uv_grid = uv_norm.permute(0, 2, 3, 1) # [B, H, W, 2]
 
+    if texture_tensor.dtype != uv_grid.dtype:
+        uv_grid = uv_grid.to(dtype=texture_tensor.dtype)
+
     # uv_sampled
     sampled_color = F.grid_sample(
         texture_tensor,
