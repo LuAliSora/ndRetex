@@ -188,11 +188,11 @@ def train_main(input_dir:str, uvRex_model_state, tex_pretrained, Freeze_Train, b
     texture_controlnet.enable_gradient_checkpointing()
 
     #Optimizer
-    Init_lr         = 1e-4
+    Init_lr         = 1e-5
     Min_lr          = Init_lr * 0.01
-    nbs             = 16
+    nbs             = 20
     lr_limit_max    = 1e-4 
-    lr_limit_min    = 1e-4 
+    lr_limit_min    = 1e-6 
     Init_lr_fit     = min(max(batch_size / nbs * Init_lr, lr_limit_min), lr_limit_max)
     Min_lr_fit      = min(max(batch_size / nbs * Min_lr, lr_limit_min * 1e-2), lr_limit_max * 1e-2)
 
@@ -205,7 +205,7 @@ def train_main(input_dir:str, uvRex_model_state, tex_pretrained, Freeze_Train, b
     lr_scheduler = get_scheduler(
         lr_decay_type,
         optimizer=optimizer,
-        num_warmup_steps=500,
+        num_warmup_steps=200,
         num_training_steps=(train_len//batch_size * (epoch_sum-Init_Epoch)) // grad_acc_steps,
     )
 

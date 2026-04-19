@@ -154,11 +154,11 @@ def train_main(input_dir:str, model_dir:str, backbone, pretrained, Freeze_Train,
     #Optimizer
     scaler = GradScaler()
 
-    Init_lr         = 1e-4
+    Init_lr         = 1e-5
     Min_lr          = Init_lr * 0.01
-    nbs             = 16
+    nbs             = 20
     lr_limit_max    = 1e-4 
-    lr_limit_min    = 1e-4 
+    lr_limit_min    = 1e-6 
     Init_lr_fit     = min(max(batch_size / nbs * Init_lr, lr_limit_min), lr_limit_max)
     Min_lr_fit      = min(max(batch_size / nbs * Min_lr, lr_limit_min * 1e-2), lr_limit_max * 1e-2)
 
