@@ -29,13 +29,13 @@ import cv2
 from diffusers.optimization import get_scheduler
 from accelerate import Accelerator
 
-
 # from accelerate import Accelerator
 # from accelerate.logging import get_logger
 # from accelerate.utils import ProjectConfiguration, set_seed
 
-from modules.utils import (download_weights, seed_everything, show_config,
-                         worker_init_fn, sd_get_model)
+from nets.get_model import  sd_get_model
+
+from modules.utils import seed_everything, worker_init_fn
 from modules.dataPr import SD_ImgSet, sd_collate_fn
 from modules.train import sd_train_one_epoch
 
