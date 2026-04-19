@@ -18,12 +18,11 @@ from tqdm import tqdm
 import csv
 import cv2
 
-# from nets.unet import Unet
 from nets.unet_training import get_lr_scheduler, set_optimizer_lr
 from nets.get_model import  uvRex_get_model
 
 from modules.utils import download_weights, seed_everything, show_config, worker_init_fn
-from modules.dataPr import Masked_ImgSet, get_dataAug, img_masked, img2np_rgb, get_binary_mask, img2tensor_rgb
+from modules.dataPr import Masked_ImgSet, get_dataAug, get_binary_mask, img2tensor_rgb
 
 from modules.train import uvRex_train_one_epoch
 from modules.predict import uvRex_predict

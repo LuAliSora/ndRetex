@@ -1,6 +1,6 @@
-#---------------------------------------------------#
-# get_model
-#---------------------------------------------------#
+import torch
+import numpy as np
+
 def uvRex_get_model(backbone, pretrained, model_dir:str, Init_Epoch, device):
     from nets.unet_training import weights_init
     from nets.unet import Unet
