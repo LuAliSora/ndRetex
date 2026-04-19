@@ -178,7 +178,7 @@ def train_main(input_dir:str, uvRex_model_state, tex_pretrained, Freeze_Train, b
     
     train_len=len(train_dataset)
     test_len=len(test_dataset)
-    test_per_epochs=train_len // test_len *10
+    test_per_epochs=train_len // test_len *2
 
     # Load_model
     model_dict=sd_get_model(uvRex_model_state, tex_pretrained, Init_Epoch, device)
