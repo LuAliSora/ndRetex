@@ -2,7 +2,7 @@ import torch
 from torch.amp import autocast
 import torch.nn.functional as F
 
-from accelerate import Accelerator
+# from accelerate import Accelerator
 
 from modules.utils import uvRex_loss
 from modules.predict import uvRex_predict
