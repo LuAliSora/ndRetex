@@ -45,8 +45,9 @@ def sd_get_model(uvRex_model_state, tex_pretrained, Init_Epoch, device)->dict:
         AutoencoderKL,
         UNet2DConditionModel,
         # DDPMScheduler,
-        DDIMScheduler,
-        UniPCMultistepScheduler
+        # DDIMScheduler,
+        PNDMScheduler,
+        # UniPCMultistepScheduler
     )
     from transformers import CLIPTokenizer, CLIPTextModel
 
@@ -109,7 +110,7 @@ def sd_get_model(uvRex_model_state, tex_pretrained, Init_Epoch, device)->dict:
         texture_controlnet.load_state_dict(tex_state_dict)
     model_dict["texture_controlnet"] = texture_controlnet.to(device)
 
-    model_dict["noise_scheduler"] = DDIMScheduler.from_pretrained(
+    model_dict["noise_scheduler"] = PNDMScheduler.from_pretrained(
         pre_sd, 
         subfolder="scheduler",
         local_files_only=True
