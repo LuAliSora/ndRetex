@@ -30,11 +30,11 @@ from diffusers.optimization import get_scheduler
 
 from accelerate import Accelerator
 # from accelerate.logging import get_logger
-# from accelerate.utils import ProjectConfiguration, set_seed
+from accelerate.utils import ProjectConfiguration, set_seed
 
 from nets.get_model import  sd_get_model
 
-from modules.utils import seed_everything, worker_init_fn
+from modules.utils import worker_init_fn
 from modules.dataPr import SD_ImgSet, sd_collate_fn
 from modules.train import sd_train_one_epoch
 
@@ -125,7 +125,8 @@ def train_main(input_dir:str, uvRex_model_state, tex_pretrained, Freeze_Train, b
     if Init_Epoch<0 or Init_Epoch>epoch_sum:
         raise Exception("Require valid epoch!")
     
-    seed_everything(seed)
+    # seed_everything(seed)
+    set_seed(seed)
 
     #logs
     log_dir            = 'logs'
