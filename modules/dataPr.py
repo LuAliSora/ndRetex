@@ -21,17 +21,6 @@ def img2np_rgb(img_path:str, imgResize=None):
     return img_rgb
 
 
-def img2tensor_rgb(img_path:str, imgResize=None, binary_mask=None, fp16_flag=False):
-    img_np = img2np_rgb(img_path, imgResize).astype(np.float32)/ 255.0
-    if binary_mask is not None:
-        img_np =img_masked(img_np, binary_mask)
-    img_tensor = torch.from_numpy(img_np).permute(2, 0, 1).contiguous()# [3,H,W]
-    # img_tensor = img_tensor.unsqueeze(0) #[1, 3, H, W]
-    if fp16_flag:
-        img_tensor=img_tensor.half()
-    return img_tensor
-
-
 def get_binary_mask(mask_path:str, imgResize=None):
     mask_np = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
     if imgResize is not None:
@@ -44,6 +33,17 @@ def img_masked(ori_np, binary_mask):
     res=ori_np.copy()
     res[~binary_mask] = 0
     return res
+
+
+def img2tensor_rgb(img_path:str, imgResize=None, binary_mask=None, fp16_flag=False):
+    img_np = img2np_rgb(img_path, imgResize).astype(np.float32)/ 255.0
+    if binary_mask is not None:
+        img_np =img_masked(img_np, binary_mask)
+    img_tensor = torch.from_numpy(img_np).permute(2, 0, 1).contiguous()# [3,H,W]
+    # img_tensor = img_tensor.unsqueeze(0) #[1, 3, H, W]
+    if fp16_flag:
+        img_tensor=img_tensor.half()
+    return img_tensor
 
 
 def get_dataAug():
