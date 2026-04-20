@@ -58,7 +58,7 @@ def sd_cal_loss(data, model_dict, device, eval_flag=False):
     ori, mask, normal, tex, prompt = data
 
     with torch.no_grad():
-        rough=uvRex_predict(ori, mask, normal, tex, uvRex_model, device)
+        rough=uvRex_predict(normal, tex, uvRex_model, device)
     
     with torch.no_grad():
     # VAE编码

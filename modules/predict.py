@@ -4,11 +4,7 @@ from torch.amp import autocast
 
 
 @torch.no_grad()
-def uvRex_predict(ori_tensor, binary_mask, normal_tensor, texture_tensor, model, device):
-    # model_dir="weights"
-    # model=uvRex_get_model(backbone, False, model_dir, Init_Epoch, device)
-    # model.eval()
-    # model.to(device)
+def uvRex_predict(normal_tensor, texture_tensor, model, device):
 
     with torch.no_grad():
         with autocast(device.type):

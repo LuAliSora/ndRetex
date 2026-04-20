@@ -219,7 +219,7 @@ def predict_single(input_dir:str, model_dir:str, img:str, texture:str, backbone,
     model=uvRex_get_model(backbone, False, model_dir, Init_Epoch, device).to(device)
     model.eval()
     
-    replace=uvRex_predict(ori_tensor, mask_tensor, normal_tensor, texture_tensor, model, device)
+    replace=uvRex_predict(normal_tensor, texture_tensor, model, device)
     
     res_tensor=tensor_combine(ori_tensor, replace, mask_tensor)
 
