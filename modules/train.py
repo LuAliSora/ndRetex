@@ -7,6 +7,7 @@ import torch.nn.functional as F
 from modules.utils import uvRex_loss
 from modules.predict import uvRex_predict
 
+
 def uvRex_train_one_epoch(model, optimizer, scaler, dataAug, device, train_loader, test_loader=None):
 
     train_loss = 0.0
@@ -138,6 +139,7 @@ def sd_cal_loss(data, model_dict, device, eval_flag=False):
     
     loss = F.mse_loss(model_pred, target, reduction="mean")
     return loss
+            
             
 def sd_train_one_epoch(accelerator, model_dict, optimizer, lr_scheduler, train_loader, test_loader=None):
     device = accelerator.device
