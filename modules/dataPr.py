@@ -46,6 +46,12 @@ def img2tensor_rgb(img_path:str, imgResize=None, binary_mask=None, fp16_flag=Fal
     return img_tensor
 
 
+def tensor_combine(ori, repl, binary_mask):
+    mask_3ch = binary_mask.unsqueeze(1).expand(-1, 3, -1, -1)
+    res = torch.where(mask_3ch, repl, ori)#[B,3,H,W]
+    return res
+
+
 def get_dataAug():
     transfm = K.AugmentationSequential(
         # K.Resize(size=trans_size_2D),

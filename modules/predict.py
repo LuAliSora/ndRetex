@@ -43,8 +43,4 @@ def uvRex_predict(ori_tensor, binary_mask, normal_tensor, texture_tensor, model,
         align_corners=True
     )
     
-    # combine
-    mask_3ch = binary_mask.unsqueeze(1).expand(-1, 3, -1, -1)
-    results = torch.where(mask_3ch, sampled_color, ori_tensor)#[B,3,H,W]
-
-    return results
+    return sampled_color

@@ -22,7 +22,7 @@ from nets.unet_training import get_lr_scheduler, set_optimizer_lr
 from nets.get_model import  uvRex_get_model
 
 from modules.utils import download_weights, seed_everything, show_config, worker_init_fn
-from modules.dataPr import Masked_ImgSet, get_dataAug, get_binary_mask, img2tensor_rgb
+from modules.dataPr import Masked_ImgSet, get_dataAug, get_binary_mask, img2tensor_rgb, tensor_combine
 
 from modules.train import uvRex_train_one_epoch
 from modules.predict import uvRex_predict
@@ -219,7 +219,10 @@ def predict_single(input_dir:str, model_dir:str, img:str, texture:str, backbone,
     model=uvRex_get_model(backbone, False, model_dir, Init_Epoch, device).to(device)
     model.eval()
     
-    res_tensor=uvRex_predict(ori_tensor, mask_tensor, normal_tensor, texture_tensor, model, device)
+    replace=uvRex_predict(ori_tensor, mask_tensor, normal_tensor, texture_tensor, model, device)
+    
+    res_tensor=tensor_combine(ori_tensor, replace, mask_tensor)
+
     res_int = (res_tensor * 255.0).to(torch.uint8)
 
     #img_save
