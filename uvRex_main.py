@@ -24,9 +24,6 @@ from nets.get_model import  uvRex_get_model
 from modules.utils import download_weights, seed_everything, show_config, worker_init_fn
 from modules.dataPr import Masked_ImgSet, get_dataAug, get_binary_mask, img2tensor_rgb, tensor_combine
 
-from modules.train import uvRex_train_one_epoch
-from modules.predict import uvRex_predict
-
 
 def get_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
@@ -99,6 +96,8 @@ def get_args() -> argparse.Namespace:
 
 
 def train_main(input_dir:str, model_dir:str, backbone, pretrained, Freeze_Train, batch_size, Init_Epoch, epoch_sum, device, seed):  
+    from modules.train import uvRex_train_one_epoch
+
     if Init_Epoch<0 or Init_Epoch>epoch_sum:
         raise Exception("Require valid epoch!")
     
@@ -201,7 +200,9 @@ def train_main(input_dir:str, model_dir:str, backbone, pretrained, Freeze_Train,
                 writer.writerow([epoch, f"{train_loss:.6f}", ""])
 
 
-def predict_single(input_dir:str, model_dir:str, img:str, texture:str, backbone, Init_Epoch, device):
+def predict_single(input_dir:str, model_dir:str, backbone, Init_Epoch, device, img:str, texture:str):
+    from modules.predict import uvRex_predict
+
     data_dir=Path(input_dir)
     ori_path=data_dir/f"cloth/{img}"
     mask_path=data_dir/f"mask/{img}"
@@ -253,10 +254,10 @@ if __name__ == "__main__":
                    )
     else:
         predict_single(args.input_dir,
-                     args.model_dir,
-                     args.img, 
-                     args.texture, 
-                     args.backbone, 
-                     args.Init_Epoch, 
-                     device
+                        args.model_dir,
+                        args.backbone, 
+                        args.Init_Epoch, 
+                        device,
+                        args.img, 
+                        args.texture, 
                      )
