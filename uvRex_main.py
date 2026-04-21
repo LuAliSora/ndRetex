@@ -212,7 +212,7 @@ def predict_single(input_dir:str, model_dir:str, img:str, texture:str, backbone,
     texture_tensor=img2tensor_rgb(texture_path).unsqueeze(0).to(device)
 
     binary_mask= get_binary_mask(mask_path)
-    normal_tensor=img2tensor_rgb(normal_path, binary_mask).unsqueeze(0).to(device)
+    normal_tensor=img2tensor_rgb(normal_path, None, binary_mask).unsqueeze(0).to(device)
 
     mask_tensor=torch.from_numpy(binary_mask).unsqueeze(0).to(device)# [1,H,W]
 
