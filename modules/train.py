@@ -57,10 +57,10 @@ def sd_cal_loss(data, model_dict, device, eval_flag=False):
     noise_scheduler = model_dict["noise_scheduler"]
 
     # ori, mask, normal, tex, prompt = data
-    normal, tex, prompt = data
+    mask, normal, tex, prompt = data
 
     with torch.no_grad():
-        rough=uvRex_predict(normal, tex, uvRex_model, device)
+        rough=uvRex_predict(normal, tex, mask, uvRex_model, device)
     
     with torch.no_grad():
     # VAE编码

@@ -2,9 +2,11 @@ import torch
 import torch.nn.functional as F
 from torch.amp import autocast
 
+from dataPr import tensor_combine
+
 
 @torch.no_grad()
-def uvRex_predict(normal_tensor, texture_tensor, model, device):
+def uvRex_predict(normal_tensor, texture_tensor, mask_tensor, model, device):
 
     with torch.no_grad():
         with autocast(device.type):
@@ -38,5 +40,8 @@ def uvRex_predict(normal_tensor, texture_tensor, model, device):
         padding_mode='border',
         align_corners=True
     )
-    
-    return sampled_color
+
+    bg=torch.zeros_like(sampled_color)
+    retex=tensor_combine(bg, sampled_color, mask_tensor)
+
+    return retex

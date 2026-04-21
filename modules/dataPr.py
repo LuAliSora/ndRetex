@@ -135,10 +135,10 @@ class SD_ImgSet(data.Dataset):
         binary_mask = get_binary_mask(mask_path, self.imgResize)
         normal_tensor=img2tensor_rgb(normal_path, self.imgResize, binary_mask, self.fp16_flag)# [3,H,W]
 
-        # mask_tensor=torch.from_numpy(binary_mask)# [H,W]
+        mask_tensor=torch.from_numpy(binary_mask)# [H,W]
 
         # return ori_tensor, mask_tensor, normal_tensor, tex_tensor, self.prompt
-        return normal_tensor, tex_tensor, self.prompt
+        return mask_tensor, normal_tensor, tex_tensor, self.prompt
     
     def __len__(self):
         return len(self.img_list)
@@ -161,18 +161,19 @@ def sd_collate_fn(batch):
     # normal_list = [item[2] for item in batch]
     # tex_list = [item[3] for item in batch]
     # prompts = [item[4] for item in batch]
-    normal_list = [item[0] for item in batch]
-    tex_list = [item[1] for item in batch]
-    prompts = [item[2] for item in batch]
+    mask_list = [item[0] for item in batch]
+    normal_list = [item[1] for item in batch]
+    tex_list = [item[2] for item in batch]
+    prompts = [item[3] for item in batch]
     
     # 对于tensor数据，使用default_collate进行批量化
     # ori_batch = default_collate(ori_list)      # [B, 3, H, W]
-    # mask_batch = default_collate(mask_list)    # [B, H, W]
+    mask_batch = default_collate(mask_list)    # [B, H, W]
     normal_batch = default_collate(normal_list) # [B, 3, H, W]
     tex_batch = default_collate(tex_list)      # [B, 3, H, W]
     
     # return ori_batch, mask_batch, normal_batch, tex_batch, prompts
-    return normal_batch, tex_batch, prompts
+    return mask_batch, normal_batch, tex_batch, prompts
 
 
 
