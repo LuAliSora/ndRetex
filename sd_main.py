@@ -251,7 +251,7 @@ def predict_single(input_dir:str, uvRex_model_state, Init_Epoch, img:str, textur
     texture_tensor=img2tensor_rgb(texture_path, imgResize).unsqueeze(0).to(device)# [1,3,H,W]
 
     binary_mask = get_binary_mask(mask_path, imgResize)
-    normal_tensor=img2tensor_rgb(normal_path, imgResize, binary_mask)# [1,3,H,W]
+    normal_tensor=img2tensor_rgb(normal_path, imgResize, binary_mask).unsqueeze(0).to(device)# [1,3,H,W]
 
     mask_tensor=torch.from_numpy(binary_mask).unsqueeze(0).to(device)# [1,H,W]
 
