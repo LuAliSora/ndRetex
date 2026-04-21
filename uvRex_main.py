@@ -227,8 +227,8 @@ def predict_single(input_dir:str, model_dir:str, backbone, Init_Epoch, device, i
     res_int = (res_tensor * 255.0).to(torch.uint8)
 
     #img_save
-    output_dir=Path("output")
-    output_dir.mkdir(exist_ok=True)
+    output_dir=Path("output/rough")
+    output_dir.mkdir(exist_ok=True, parents=True)
     res_path=output_dir/img
 
     res_np = res_int[0].cpu().numpy().transpose(1, 2, 0)

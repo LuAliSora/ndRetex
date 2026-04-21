@@ -25,7 +25,6 @@ from tqdm import tqdm
 import csv
 import cv2
 
-
 from diffusers.optimization import get_scheduler
 
 from accelerate import Accelerator
@@ -35,8 +34,7 @@ from accelerate.utils import ProjectConfiguration, set_seed
 from nets.get_model import  sd_get_model
 
 from modules.utils import worker_init_fn
-from modules.dataPr import SD_ImgSet, sd_collate_fn
-from modules.train import sd_train_one_epoch
+from modules.dataPr import SD_ImgSet, sd_collate_fn, img2tensor_rgb, get_binary_mask, tensor_combine
 
 
 def get_args() -> argparse.Namespace:
@@ -122,6 +120,8 @@ def get_args() -> argparse.Namespace:
 
 
 def train_main(input_dir:str, uvRex_model_state, tex_pretrained, Freeze_Train, batch_size, grad_acc_steps, Init_Epoch, epoch_sum, seed): 
+    from modules.train import sd_train_one_epoch
+
     if Init_Epoch<0 or Init_Epoch>epoch_sum:
         raise Exception("Require valid epoch!")
     
@@ -234,10 +234,49 @@ def train_main(input_dir:str, uvRex_model_state, tex_pretrained, Freeze_Train, b
                 writer.writerow([epoch, f"{train_loss:.6f}", ""])
 
 
-if __name__ == "__main__":
-    args=get_args()
+def predict_single(input_dir:str, uvRex_model_state, Init_Epoch, img:str, texture:str):
+    from modules.predict import sd_predict
 
     device= torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    data_dir=Path(input_dir)
+    ori_path=data_dir/f"cloth/{img}"
+    mask_path=data_dir/f"mask/{img}"
+    normal_path=data_dir/f"normal/{img}"
+    texture_path=data_dir/f"tex/{texture}"
+
+    ori_tensor=img2tensor_rgb(ori_path).unsqueeze(0).to(device)# [1,3,H,W]
+    texture_tensor=img2tensor_rgb(texture_path).unsqueeze(0).to(device)
+
+    binary_mask= get_binary_mask(mask_path)
+    normal_tensor=img2tensor_rgb(normal_path, None, binary_mask).unsqueeze(0).to(device)
+
+    mask_tensor=torch.from_numpy(binary_mask).unsqueeze(0).to(device)# [1,H,W]
+
+    prompt=["clothes_prompt"]
+
+    data=[mask_tensor, normal_tensor, texture_tensor, prompt]
+
+    model_dict=sd_get_model(uvRex_model_state, False, Init_Epoch, device)
+
+    replace=sd_predict(data, model_dict, device)
+
+    res_tensor=tensor_combine(ori_tensor, replace, mask_tensor)
+
+    res_int = (res_tensor * 255.0).to(torch.uint8)
+
+    #img_save
+    output_dir=Path("output/refine")
+    output_dir.mkdir(exist_ok=True, parents=True)
+    res_path=output_dir/img
+
+    res_np = res_int[0].cpu().numpy().transpose(1, 2, 0)
+    res_bgr = cv2.cvtColor(res_np, cv2.COLOR_RGB2BGR)
+    cv2.imwrite(str(res_path), res_bgr)
+
+
+if __name__ == "__main__":
+    args=get_args()
     
     uvRex_model_state={
         "backbone":args.uvRex_backbone,
@@ -257,12 +296,10 @@ if __name__ == "__main__":
                    args.epoch_sum, 
                    args.seed
                    )
-    # else:
-    #     predict_main(args.input_dir,
-    #                  args.model_dir,
-    #                  args.img, 
-    #                  args.texture, 
-    #                  args.backbone, 
-    #                  args.Init_Epoch, 
-    #                  device
-    #                  )
+    else:
+        predict_single(args.input_dir,
+                        uvRex_model_state,
+                        args.Init_Epoch, 
+                        args.img, 
+                        args.texture, 
+                     )

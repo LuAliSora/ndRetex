@@ -45,3 +45,45 @@ def uvRex_predict(normal_tensor, texture_tensor, mask_tensor, model, device):
     retex=tensor_combine(bg, sampled_color, mask_tensor)
 
     return retex
+
+
+@torch.no_grad()
+def sd_predict(data, model_dict, device, contro_scale=[1.0, 0.8], infer_steps=20, guidance_scale=7.5,  strength=0.8):
+    from diffusers import StableDiffusionControlNetImg2ImgPipeline, UniPCMultistepScheduler
+
+    uvRex_model = model_dict["uvRex_model"]
+    vae = model_dict["vae"]
+    unet = model_dict["unet"]
+    tokenizer = model_dict["tokenizer"]
+    text_encoder = model_dict["text_encoder"]
+    normal_controlnet = model_dict["normal_controlnet"]
+    texture_controlnet = model_dict["texture_controlnet"]
+    noise_scheduler = model_dict["noise_scheduler"]
+
+    mask, normal, tex, prompt = data
+
+    pipe = StableDiffusionControlNetImg2ImgPipeline(
+        vae=vae,
+        text_encoder=text_encoder,
+        tokenizer=tokenizer,
+        unet=unet,
+        controlnet=[normal_controlnet, texture_controlnet],
+        scheduler=UniPCMultistepScheduler.from_config(noise_scheduler.config, use_karras_sigmas=True)
+    ).to(device)
+    pipe.enable_model_cpu_offload()
+
+    with torch.no_grad():
+        rough=uvRex_predict(normal, tex, mask, uvRex_model, device)
+
+        retex = pipe(
+            prompt=prompt,
+            image=rough,
+            control_image=[normal, tex],
+            controlnet_conditioning_scale=contro_scale,
+            num_inference_steps=infer_steps,
+            guidance_scale=guidance_scale,
+            strength=strength,
+            output_type="pt"  
+        )
+
+    return retex
