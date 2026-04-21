@@ -83,7 +83,9 @@ def sd_predict(data, model_dict, device, contro_scale=[1.0, 0.8], infer_steps=20
             num_inference_steps=infer_steps,
             guidance_scale=guidance_scale,
             strength=strength,
-            output_type="pt"  
+            output_type="pt"  ,
+            safety_checker=None,      
+            feature_extractor=None    
         )
 
     return retex
