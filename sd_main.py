@@ -239,17 +239,19 @@ def predict_single(input_dir:str, uvRex_model_state, Init_Epoch, img:str, textur
 
     device= torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+    imgResize=(512,512)
+
     data_dir=Path(input_dir)
     ori_path=data_dir/f"cloth/{img}"
     mask_path=data_dir/f"mask/{img}"
     normal_path=data_dir/f"normal/{img}"
     texture_path=data_dir/f"tex/{texture}"
 
-    ori_tensor=img2tensor_rgb(ori_path).unsqueeze(0).to(device)# [1,3,H,W]
-    texture_tensor=img2tensor_rgb(texture_path).unsqueeze(0).to(device)
+    ori_tensor=img2tensor_rgb(ori_path, imgResize).unsqueeze(0).to(device)# [1,3,H,W]
+    texture_tensor=img2tensor_rgb(texture_path, imgResize).unsqueeze(0).to(device)# [1,3,H,W]
 
-    binary_mask= get_binary_mask(mask_path)
-    normal_tensor=img2tensor_rgb(normal_path, None, binary_mask).unsqueeze(0).to(device)
+    binary_mask = get_binary_mask(mask_path, imgResize)
+    normal_tensor=img2tensor_rgb(normal_path, imgResize, binary_mask)# [1,3,H,W]
 
     mask_tensor=torch.from_numpy(binary_mask).unsqueeze(0).to(device)# [1,H,W]
 
