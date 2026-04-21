@@ -46,7 +46,7 @@ def uvRex_train_one_epoch(model, optimizer, scaler, dataAug, device, train_loade
     return train_loss, test_loss
 
 
-def sd_cal_loss(data, model_dict, device, eval_flag=False):
+def sd_cal_loss(data, model_dict, device, cond_drop_prob=0.1, eval_flag=False):
     uvRex_model = model_dict["uvRex_model"]
     vae = model_dict["vae"]
     unet = model_dict["unet"]
@@ -58,6 +58,17 @@ def sd_cal_loss(data, model_dict, device, eval_flag=False):
 
     # ori, mask, normal, tex, prompt = data
     mask, normal, tex, prompt = data
+
+    if cond_drop_prob > 0:
+        empty_prompt = [""] * len(prompt)  # 空字符串作为无条件
+        # 为每个样本随机决定是否使用无条件
+        cond_flag = torch.rand(len(prompt)) > cond_drop_prob
+        fin_prompt = [
+            prompt[i] if cond_flag[i] else empty_prompt[i]
+            for i in range(len(prompt))
+        ]
+    else:
+        fin_prompt = prompt
 
     with torch.no_grad():
         rough=uvRex_predict(normal, tex, mask, uvRex_model, device)
@@ -81,7 +92,7 @@ def sd_cal_loss(data, model_dict, device, eval_flag=False):
 
     # 2. 编码prompt
     text_inputs = tokenizer(
-        prompt,
+        fin_prompt,
         padding="max_length",
         max_length=tokenizer.model_max_length,
         truncation=True,
@@ -166,7 +177,7 @@ def sd_train_one_epoch(accelerator, model_dict, optimizer, lr_scheduler, train_l
     if test_loader is not None:
         for i, data in enumerate(test_loader):
             texture_controlnet.eval()
-            loss=sd_cal_loss(data, model_dict, device, True)
+            loss=sd_cal_loss(data, model_dict, device, 1, True)
             test_loss += loss.item()
 
     return train_loss, test_loss
