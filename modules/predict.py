@@ -68,7 +68,9 @@ def sd_predict(data, model_dict, device, contro_scale=[1.0, 0.8], infer_steps=20
         tokenizer=tokenizer,
         unet=unet,
         controlnet=[normal_controlnet, texture_controlnet],
-        scheduler=UniPCMultistepScheduler.from_config(noise_scheduler.config, use_karras_sigmas=True)
+        scheduler=UniPCMultistepScheduler.from_config(noise_scheduler.config, use_karras_sigmas=True),
+        safety_checker=None,      
+        feature_extractor=None  
     ).to(device)
     pipe.enable_model_cpu_offload()
 
@@ -83,9 +85,7 @@ def sd_predict(data, model_dict, device, contro_scale=[1.0, 0.8], infer_steps=20
             num_inference_steps=infer_steps,
             guidance_scale=guidance_scale,
             strength=strength,
-            output_type="pt"  ,
-            safety_checker=None,      
-            feature_extractor=None    
+            output_type="pt"  
         )
 
     return retex
