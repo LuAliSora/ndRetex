@@ -203,7 +203,7 @@ def train_main(input_dir:str, model_dir:str, backbone, pretrained, Freeze_Train,
 def predict_single(input_dir:str, model_dir:str, backbone, Init_Epoch, device, img:str, texture:str):
     from modules.predict import uvRex_predict
 
-    imgResize=(512,512)
+    imgResize=None
 
     data_dir=Path(input_dir)
     ori_path=data_dir/f"cloth/{img}"
