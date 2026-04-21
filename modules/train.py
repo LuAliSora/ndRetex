@@ -62,13 +62,13 @@ def sd_cal_loss(data, model_dict, device, cond_drop_prob=0.1, eval_flag=False):
     if cond_drop_prob > 0:
         empty_prompt = [""] * len(prompt)  # 空字符串作为无条件
         # 为每个样本随机决定是否使用无条件
-        cond_flag = torch.rand(len(prompt)) > cond_drop_prob
+        uncond_flag = torch.rand(len(prompt)) < cond_drop_prob
         fin_prompt = [
-            prompt[i] if cond_flag[i] else empty_prompt[i]
+            empty_prompt[i] if uncond_flag[i] else prompt[i]
             for i in range(len(prompt))
         ]
     else:
-        fin_prompt = prompt
+        fin_prompts = prompt
 
     with torch.no_grad():
         rough=uvRex_predict(normal, tex, mask, uvRex_model, device)
@@ -177,7 +177,7 @@ def sd_train_one_epoch(accelerator, model_dict, optimizer, lr_scheduler, train_l
     if test_loader is not None:
         for i, data in enumerate(test_loader):
             texture_controlnet.eval()
-            loss=sd_cal_loss(data, model_dict, device, 1, True)
+            loss=sd_cal_loss(data, model_dict, device, 0.0, True)
             test_loss += loss.item()
 
     return train_loss, test_loss
