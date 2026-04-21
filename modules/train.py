@@ -58,10 +58,6 @@ def sd_cal_loss(data, model_dict, device, cond_drop_prob=0.1, eval_flag=False):
 
     # ori, mask, normal, tex, prompt = data
     mask, normal, tex, prompt = data
-    
-    mask = mask.to(device)
-    normal = normal.to(device)
-    tex = tex.to(device)
 
     if cond_drop_prob > 0:
         empty_prompt = [""] * len(prompt)  # 空字符串作为无条件
