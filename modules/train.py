@@ -68,7 +68,7 @@ def sd_cal_loss(data, model_dict, device, cond_drop_prob=0.1, eval_flag=False):
             for i in range(len(prompt))
         ]
     else:
-        fin_prompts = prompt
+        fin_prompt = prompt
 
     with torch.no_grad():
         rough=uvRex_predict(normal, tex, mask, uvRex_model, device)
