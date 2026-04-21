@@ -103,12 +103,13 @@ class SD_ImgSet(data.Dataset):
 
     def __init__(self, data_dir:str, imgResize=(512,512), fp16_flag=False):
         img_dir=Path(data_dir)
-        self.ori_dir=img_dir/"cloth"
+        # self.ori_dir=img_dir/"cloth"
         self.mask_dir=img_dir/"mask"
         self.normal_dir=img_dir/"normal"
         self.tex_dir=img_dir/"tex"
 
-        self.img_list = sorted([str(img.name) for img in (self.ori_dir).glob('*.jpg')])
+        # self.img_list = sorted([str(img.name) for img in (self.ori_dir).glob('*.jpg')])
+        self.img_list = sorted([str(img.name) for img in (self.normal_dir).glob('*.jpg')])
         self.tex_list = sorted([str(tex.name) for tex in (self.tex_dir).glob('*.jpg')])
 
         self.tex_num=len(self.tex_list)
@@ -123,20 +124,21 @@ class SD_ImgSet(data.Dataset):
         img_name=self.img_list[index]
         tex_name=self.tex_list[index%(self.tex_num)]
 
-        ori_path=self.ori_dir/img_name
+        # ori_path=self.ori_dir/img_name
         mask_path=self.mask_dir/img_name
         normal_path=self.normal_dir/img_name
         tex_path=self.tex_dir/tex_name
 
-        ori_tensor=img2tensor_rgb(ori_path, self.imgResize, None, self.fp16_flag)# [3,H,W]
+        # ori_tensor=img2tensor_rgb(ori_path, self.imgResize, None, self.fp16_flag)# [3,H,W]
         tex_tensor=img2tensor_rgb(tex_path, self.imgResize, None, self.fp16_flag)# [3,H,W]
 
         binary_mask = get_binary_mask(mask_path, self.imgResize)
         normal_tensor=img2tensor_rgb(normal_path, self.imgResize, binary_mask, self.fp16_flag)# [3,H,W]
 
-        mask_tensor=torch.from_numpy(binary_mask)# [H,W]
+        # mask_tensor=torch.from_numpy(binary_mask)# [H,W]
 
-        return ori_tensor, mask_tensor, normal_tensor, tex_tensor, self.prompt
+        # return ori_tensor, mask_tensor, normal_tensor, tex_tensor, self.prompt
+        return normal_tensor, tex_tensor, self.prompt
     
     def __len__(self):
         return len(self.img_list)
@@ -154,20 +156,23 @@ def sd_collate_fn(batch):
         dict: 包含批量化后的数据
     """
     # 解包batch中的各个元素
-    ori_list = [item[0] for item in batch]
-    mask_list = [item[1] for item in batch]
-    normal_list = [item[2] for item in batch]
-    tex_list = [item[3] for item in batch]
-    prompts = [item[4] for item in batch]
+    # ori_list = [item[0] for item in batch]
+    # mask_list = [item[1] for item in batch]
+    # normal_list = [item[2] for item in batch]
+    # tex_list = [item[3] for item in batch]
+    # prompts = [item[4] for item in batch]
+    normal_list = [item[0] for item in batch]
+    tex_list = [item[1] for item in batch]
+    prompts = [item[2] for item in batch]
     
     # 对于tensor数据，使用default_collate进行批量化
-    ori_batch = default_collate(ori_list)      # [B, 3, H, W]
-    mask_batch = default_collate(mask_list)    # [B, H, W]
+    # ori_batch = default_collate(ori_list)      # [B, 3, H, W]
+    # mask_batch = default_collate(mask_list)    # [B, H, W]
     normal_batch = default_collate(normal_list) # [B, 3, H, W]
     tex_batch = default_collate(tex_list)      # [B, 3, H, W]
     
-    return ori_batch, mask_batch, normal_batch, tex_batch, prompts
-
+    # return ori_batch, mask_batch, normal_batch, tex_batch, prompts
+    return normal_batch, tex_batch, prompts
 
 
 

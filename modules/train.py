@@ -56,7 +56,8 @@ def sd_cal_loss(data, model_dict, device, eval_flag=False):
     texture_controlnet = model_dict["texture_controlnet"]
     noise_scheduler = model_dict["noise_scheduler"]
 
-    ori, mask, normal, tex, prompt = data
+    # ori, mask, normal, tex, prompt = data
+    normal, tex, prompt = data
 
     with torch.no_grad():
         rough=uvRex_predict(normal, tex, uvRex_model, device)
