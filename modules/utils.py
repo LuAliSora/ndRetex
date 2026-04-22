@@ -105,7 +105,7 @@ def compute_d_y(ori):
     d_y[:, :, :, 1:] = temp
     return d_y
 
-def uvRex_loss(normal, uv):
+def uvRex_loss(normal, uv_actual):
     """
     计算UV和Normal的损失函数
     
@@ -116,6 +116,12 @@ def uvRex_loss(normal, uv):
     Returns:
         loss: 标量损失值
     """
+
+    # uv 应落在 [0,1] 内
+    loss_overstep=torch.relu(uv_actual - 1.0) + torch.relu(-uv_actual)
+
+    uv = torch.clamp(uv_actual, 0.0, 1.0)
+
     # 计算UV的梯度
     du_x = compute_d_x(uv[:, 0:1])  # [B, 1, H, W]
     dv_x = compute_d_x(uv[:, 1:2])  # [B, 1, H, W]
@@ -147,9 +153,9 @@ def uvRex_loss(normal, uv):
     # loss_area = (jacobian - 1.0)**2
 
     # 平滑性约束
-    loss_smooth = (du_x**2 + du_y**2 + dv_x**2 + dv_y**2).mean()
-    
+    loss_smooth = du_x**2 + du_y**2 + dv_x**2 + dv_y**2
+
     # 计算平均损失（而不是总和）
-    loss_fin = loss_geo.mean() + 0.1 * loss_flip.mean()+ 0.01 * loss_smooth.mean()
+    loss_fin = 0.5 * (loss_overstep.mean()) + (loss_geo.mean()) + 0.1 * (loss_flip.mean()) + 0.01 * (loss_smooth.mean()) 
     
     return loss_fin
