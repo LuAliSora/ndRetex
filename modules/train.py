@@ -175,10 +175,13 @@ def sd_train_one_epoch(accelerator, model_dict, optimizer, lr_scheduler, train_l
 
     test_loss = 0.0
     if test_loader is not None:
+        texture_controlnet.eval()
         for i, data in enumerate(test_loader):
-            texture_controlnet.eval()
+
             loss=sd_cal_loss(data, model_dict, device, 0.0, True)
+
             test_loss += loss.item()
+        texture_controlnet.train()
 
     return train_loss, test_loss
 
