@@ -140,7 +140,7 @@ def train_main(input_dir:str, model_dir:str, backbone, pretrained, Freeze_Train,
     
     train_len=len(train_dataset)
     test_len=len(test_dataset)
-    test_per_epochs=train_len // test_len *10
+    test_per_epochs=train_len // test_len *5
 
     # model_dir="weights"
     model=uvRex_get_model(backbone, pretrained, model_dir, Init_Epoch, device).to(device)
