@@ -1,7 +1,10 @@
+import os
+import multiprocessing
+os.environ['OMP_NUM_THREADS'] = str(multiprocessing.cpu_count())
+
 import argparse
 
 # import datetime
-# import os
 from functools import partial
 
 # import numpy as np
