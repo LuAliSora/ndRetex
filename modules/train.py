@@ -125,14 +125,16 @@ def sd_cal_loss(data, model_dict, device, cond_drop_prob=0.1, eval_flag=False):
         )
 
         # 4. 合并两个ControlNet的输出
+        normal_weight = 1.0
+        texture_weight = 0.8
         # 简单相加或加权融合
         down_block_res_samples = [
-            normal_sample + texture_sample 
+            normal_sample * normal_weight + texture_sample * texture_weight
             for normal_sample, texture_sample in zip(
                 normal_down_block_res_samples, texture_down_block_res_samples
             )
         ]
-        mid_block_res_sample = normal_mid_block_res_sample + texture_mid_block_res_sample
+        mid_block_res_sample = normal_mid_block_res_sample * normal_weight + texture_mid_block_res_sample * texture_weight
         # 5. UNet前向传播（预测噪声）
         model_pred = unet(
             noisy_latents,
