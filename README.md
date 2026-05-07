@@ -3,11 +3,11 @@ Normal-guided Diffusion for Re-texturing
 # train
 ## uvRex
 `python uvRex_main.py --input_dir input --model_dir weights --pretrained True --epoch_sum 9 --batch_size 2`
-or
+<br>or<br>
 `python uvRex_main.py --input_dir input --model_dir weights --Init_Epoch 9 --epoch_sum 99 --batch_size 2`
 ## sd
 `python sd_main.py --input_dir input --uvRex_model_dir weights --uvRex_Epoch 9 --tex_pretrained True --epoch_sum 9 --batch_size 2 --grad_acc_steps 2`
-or
+<br>or<br>
 `python sd_main.py --input_dir input --uvRex_model_dir weights --uvRex_Epoch 9 --Init_Epoch 9 --epoch_sum 99 --batch_size 2 --grad_acc_steps 2`
 # infer
 ## uvRex
