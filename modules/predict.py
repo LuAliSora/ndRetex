@@ -19,8 +19,8 @@ def uvRex_predict(normal_tensor, texture_tensor, mask_tensor, model, device):
 
     # uv_normalized
     uv_flat = y.view(B, 2, -1)
-    uv_min = uv_flat.min(dim=-1, keepdim=True)[0].min(dim=1, keepdim=True)[0].view(B, 1, 1, 1)
-    uv_max = uv_flat.max(dim=-1, keepdim=True)[0].max(dim=1, keepdim=True)[0].view(B, 1, 1, 1)
+    uv_min = uv_flat.min(dim=-1, keepdim=True)[0].unsqueeze(-1) # [B, 2, 1, 1]
+    uv_max = uv_flat.max(dim=-1, keepdim=True)[0].unsqueeze(-1)
     
     uv_dist = uv_max - uv_min
     uv_range = torch.where(uv_dist == 0, torch.ones_like(uv_dist), uv_dist)
