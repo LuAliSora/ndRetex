@@ -153,9 +153,9 @@ def uvRex_loss(normal, uv_actual):
     # loss_area = (jacobian - 1.0)**2
 
     # 平滑性约束
-    # loss_smooth = du_x**2 + du_y**2 + dv_x**2 + dv_y**2
+    loss_smooth = du_x**2 + du_y**2 + dv_x**2 + dv_y**2
 
     # 计算平均损失（而不是总和）
-    loss_fin = 0.05 * (loss_overstep.mean()) + (loss_geo.mean()) + 0.1 * (loss_flip.mean()) 
-    
+    loss_fin = 0.05 * (loss_overstep.mean()) + (loss_geo.mean()) + 0.1 * (loss_flip.mean()) + 0.01 * (loss_smooth.mean())
+
     return loss_fin
