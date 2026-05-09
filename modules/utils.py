@@ -149,7 +149,7 @@ def uvRex_loss(normal, uv_actual):
     
     # Z方向约束
     jacobian = du_x * dv_y - du_y * dv_x
-    loss_flip = torch.relu(-jacobian)
+    loss_flip = torch.relu(jacobian)
     # loss_area = (jacobian - 1.0)**2
 
     # 平滑性约束
