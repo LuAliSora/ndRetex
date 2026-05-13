@@ -234,8 +234,10 @@ def train_main(input_dir:str, uvRex_model_state, tex_pretrained, Freeze_Train, b
                 writer.writerow([epoch, f"{train_loss:.6f}", ""])
 
 
-def predict_single(input_dir:str, uvRex_model_state, Init_Epoch, img:str, texture:str):
+def predict_single(input_dir:str, uvRex_model_state, Init_Epoch, img:str, texture:str, seed):
     from modules.predict import sd_predict
+
+    set_seed(seed)
 
     device= torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -304,4 +306,5 @@ if __name__ == "__main__":
                         args.Init_Epoch, 
                         args.img, 
                         args.texture, 
+                        args.seed
                      )

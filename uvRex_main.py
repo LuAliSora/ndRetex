@@ -203,8 +203,10 @@ def train_main(input_dir:str, model_dir:str, backbone, pretrained, Freeze_Train,
                 writer.writerow([epoch, f"{train_loss:.6f}", ""])
 
 
-def predict_single(input_dir:str, model_dir:str, backbone, Init_Epoch, device, img:str, texture:str):
+def predict_single(input_dir:str, model_dir:str, backbone, Init_Epoch, device, img:str, texture:str, seed):
     from modules.predict import uvRex_predict
+
+    seed_everything(seed)
 
     imgResize=None
 
@@ -265,4 +267,5 @@ if __name__ == "__main__":
                         device,
                         args.img, 
                         args.texture, 
+                        args.seed
                      )
