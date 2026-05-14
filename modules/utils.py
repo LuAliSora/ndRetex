@@ -122,7 +122,7 @@ def uvRex_loss(normal, uv_actual):
 
     uv = torch.clamp(uv_actual, 0.0, 1.0)
 
-    # 计算UV的梯度
+    # 一阶导数
     du_x = compute_d_x(uv[:, 0:1])  # [B, 1, H, W]
     dv_x = compute_d_x(uv[:, 1:2])  # [B, 1, H, W]
     du_y = compute_d_y(uv[:, 0:1])  # [B, 1, H, W]
@@ -155,7 +155,7 @@ def uvRex_loss(normal, uv_actual):
     # 平滑性约束
     loss_smooth = du_x**2 + du_y**2 + dv_x**2 + dv_y**2
 
-    # 计算二阶导数
+    # 二阶导数
     du_xx = compute_d_x(du_x)
     du_yy = compute_d_y(du_y)
     dv_xx = compute_d_x(dv_x)
@@ -170,7 +170,7 @@ def uvRex_loss(normal, uv_actual):
     loss_fin = (0.03 * (loss_overstep.mean()) + 
                 1.0 * (loss_geo.mean()) +
                 0.1 *(loss_flip.mean()) + 
-                0.02 * (loss_smooth.mean()) + 
-                0.05 * (loss_laplacian.mean())
+                0.05 * (loss_smooth.mean()) + 
+                0.1 * (loss_laplacian.mean())
                 )
     return loss_fin
