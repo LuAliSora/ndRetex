@@ -155,7 +155,22 @@ def uvRex_loss(normal, uv_actual):
     # 平滑性约束
     loss_smooth = du_x**2 + du_y**2 + dv_x**2 + dv_y**2
 
-    # 计算平均损失（而不是总和）
-    loss_fin = 0.05 * (loss_overstep.mean()) + (loss_geo.mean()) + 0.1 * (loss_flip.mean()) + 0.01 * (loss_smooth.mean())
+    # 计算二阶导数
+    du_xx = compute_d_x(du_x)
+    du_yy = compute_d_y(du_y)
+    dv_xx = compute_d_x(dv_x)
+    dv_yy = compute_d_y(dv_y)
+    
+    # 拉普拉斯算子 - 强制平滑
+    laplacian_u = du_xx + du_yy
+    laplacian_v = dv_xx + dv_yy
+    loss_laplacian = laplacian_u**2 + laplacian_v**2
 
+    # 计算平均损失（而不是总和）
+    loss_fin = (0.03 * (loss_overstep.mean()) + 
+                1.0 * (loss_geo.mean()) +
+                0.1 *(loss_flip.mean()) + 
+                0.02 * (loss_smooth.mean()) + 
+                0.05 * (loss_laplacian.mean())
+                )
     return loss_fin
